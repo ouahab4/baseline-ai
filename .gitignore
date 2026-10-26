@@ -6,3 +6,5 @@ __pycache__/
 paper/*.aux
 paper/*.log
 paper/*.out
+video/build/
+video/tts/

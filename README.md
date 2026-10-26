@@ -106,6 +106,14 @@ for 24 representative buildings. Refresh its data with `python -m src.export_sit
 `python -m http.server -d docs 8000`. Deploy with GitHub Pages (Settings → Pages → branch `main`, folder `/docs`).
 
 
+## Film
+
+`docs/media/baseline-ai-film.mp4` is a 1 min 43 s motion-graphics film with an English voice-over and captions,
+shown at the top of the website. It is generated entirely from code in `video/`: the voice-over with the open-source
+Kokoro text-to-speech model, a synthesised music bed, and animations drawn from the project's real results.
+Rebuild it with `video/build.sh` (needs ffmpeg, Node.js with Playwright, and the Kokoro model files listed in
+`video/voiceover.py`).
+
 ## Outputs
 
 - `reports/model_comparison.csv` – all models, all metrics

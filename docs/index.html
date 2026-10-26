@@ -114,14 +114,26 @@ p { margin: 0; }
 .hero h1 em { font-style: normal; color: var(--band-accent); }
 .hero .lede { color: var(--band-muted); margin-top: 22px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-.scope { background: color-mix(in srgb, var(--band) 70%, #000 30%); border: 1px solid var(--band-line); border-radius: 10px; padding: 18px 18px 12px; }
-.scope-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; align-items: baseline; margin-bottom: 10px; }
-.scope-title { font-family: var(--font-mono); font-size: var(--step--1); color: var(--band-muted); }
-.scope-title b { color: var(--band-ink); font-weight: 500; }
+.film { margin: 0; }
+@media (min-width: 1100px) {
+  .hero .wrap { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); align-items: center; column-gap: 56px; padding-block: 56px 0; }
+  .hero .stats { grid-column: 1 / -1; }
+  .hero h1 { font-size: clamp(2.6rem, 0.8rem + 3.3vw, 4rem); }
+  .hero .lede { font-size: 1.0625rem; }
+}
+.film-frame { position: relative; border: 1px solid var(--band-line); border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; max-width: 100%; box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.8); }
+.film-frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.film-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 18px; border: 0; cursor: pointer; color: var(--band-ink); font-family: var(--font-body); background: linear-gradient(180deg, rgba(7, 13, 16, 0.15), rgba(7, 13, 16, 0.55)); }
+.film-play-icon { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: var(--band-accent); color: #06140f; padding-left: 6px; box-shadow: 0 0 0 10px rgba(63, 209, 160, 0.18); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.film-play:hover .film-play-icon, .film-play:focus-visible .film-play-icon { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(63, 209, 160, 0.22); }
+.film-play-text { display: grid; text-align: left; gap: 2px; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6); }
+.film-play-text b { font-family: var(--font-display); font-stretch: 112%; font-size: clamp(1.1rem, 0.9rem + 1vw, 1.6rem); font-weight: 700; }
+.film-play-text span { font-size: var(--step--1); color: var(--band-muted); }
+.film figcaption { margin-top: 12px; font-size: var(--step--1); color: var(--band-muted); }
+@media (max-width: 560px) { .film-play-text { display: none; } .film-play-icon { width: 64px; height: 64px; } }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--step--1); color: var(--band-muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
-.scope-canvas { position: relative; height: clamp(220px, 32vw, 320px); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--band-line); margin-top: 8px; }
 .stat { padding: 22px 16px 26px 0; border-right: 1px solid var(--band-line); padding-left: 16px; }
 .stat:first-child { padding-left: 0; }
@@ -321,25 +333,29 @@ footer a { color: var(--band-ink); }
 <div class="hero">
   <div class="wrap">
     <div>
-      <p class="eyebrow">Open-source AI for building energy · COMPILIX INNOVATIONS</p>
+      <p class="eyebrow">Open-source energy AI · COMPILIX INNOVATIONS</p>
       <h1>Know what every building <em>should</em> consume.</h1>
       <p class="lede">Baseline AI forecasts hourly electricity use from weather, calendar and meter history. When a building uses more than it should, it flags the waste. After a retrofit, it measures the real savings. Trained and tested on <span data-stat="buildings">591</span> real buildings.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#platform">Try it on real buildings</a>
+        <a class="btn btn-primary" href="#film" id="watch-film">Watch the film</a>
+        <a class="btn btn-ghost" href="#platform">Try it on real buildings</a>
         <a class="btn btn-ghost" href="#method">How it works</a>
         <a class="btn btn-ghost" href="https://github.com/ouahab4/baseline-ai" rel="noopener">Code on GitHub</a>
       </div>
     </div>
-    <div class="scope" aria-label="Live forecast example">
-      <div class="scope-head">
-        <p class="scope-title">Unseen test data · <b id="hero-building">office building</b> · 14 days, hourly kWh</p>
-        <div class="legend">
-          <span><i class="swatch" style="background: var(--band-ink)"></i>Metered</span>
-          <span><i class="swatch" style="background: var(--band-accent)"></i>Day-ahead forecast</span>
-        </div>
+    <figure class="film" id="film">
+      <div class="film-frame">
+        <video id="film-video" preload="metadata" playsinline poster="media/baseline-ai-film-poster.jpg">
+          <source src="media/baseline-ai-film.mp4" type="video/mp4">
+          <track kind="captions" srclang="en" label="English" src="media/baseline-ai-film.vtt" default>
+        </video>
+        <button class="film-play" id="film-play" type="button" aria-label="Play the Baseline AI film with sound">
+          <span class="film-play-icon" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M9 5.5v19l16-9.5z" fill="currentColor"/></svg></span>
+          <span class="film-play-text"><b>Watch the film</b><span>1 min 43 s · English, with captions</span></span>
+        </button>
       </div>
-      <div class="scope-canvas"><canvas id="hero-chart" role="img" aria-label="Metered and forecast hourly electricity use over 14 days"></canvas></div>
-    </div>
+      <figcaption>What Baseline AI does, and why it matters, in under two minutes.</figcaption>
+    </figure>
     <div class="stats">
       <div class="stat"><div class="v num" data-stat="buildings">591</div><div class="k">real buildings on 4 campuses, 14 building types</div></div>
       <div class="stat"><div class="v num" data-stat="readings">9.2M</div><div class="k">hourly meter readings, 2016–2017</div></div>
@@ -808,21 +824,6 @@ python -m src.train &amp;&amp; python -m src.explain &amp;&amp; python -m src.an
     document.querySelectorAll("[data-stat]").forEach(function (el) { var k = el.getAttribute("data-stat"); if (vals[k] != null) el.textContent = vals[k]; });
   }
 
-  function heroChart() {
-    var b = DATA.buildings.filter(function (x) { return x.use === "office"; })[1] || DATA.buildings[0];
-    var s = hourIndex("2017-10-09"), e = s + 14 * 24;
-    document.getElementById("hero-building").textContent = title(b.use) + " building, " + b.site + " campus";
-    var labels = [], act = [], fc = [];
-    for (var i = s; i < e; i++) { labels.push(hourLabel(i)); act.push(b.actual[i]); fc.push(b.day_ahead[i]); }
-    var o = baseOptions();
-    o.scales.x.ticks.color = css("--band-muted"); o.scales.y.ticks.color = css("--band-muted");
-    o.scales.y.grid.color = css("--band-line"); o.scales.x.border.color = css("--band-line");
-    draw("hero-chart", { type: "line", data: { labels: labels, datasets: [
-      { label: "Metered kWh", data: act, borderColor: css("--band-ink"), borderWidth: 1.6, pointRadius: 0, tension: 0.2, spanGaps: true },
-      { label: "Day-ahead forecast kWh", data: fc, borderColor: css("--band-accent"), borderWidth: 1.8, pointRadius: 0, tension: 0.2, spanGaps: true }
-    ] }, options: o });
-  }
-
   function comparisonChart() {
     var rows = DATA.comparison.slice().sort(function (a, b) { return a.median_cv_rmse_pct - b.median_cv_rmse_pct; });
     var accent = css("--accent"), weather = css("--weather");
@@ -958,7 +959,7 @@ python -m src.train &amp;&amp; python -m src.explain &amp;&amp; python -m src.an
     if (state.tab === "savings") savingsView();
     if (state.tab === "drivers") driversView();
   }
-  function renderAll() { if (!DATA || typeof Chart === "undefined") return; heroChart(); comparisonChart(); histChart(); render(); }
+  function renderAll() { if (!DATA || typeof Chart === "undefined") return; comparisonChart(); histChart(); render(); }
 
   function setupPlatform() {
     var sel = document.getElementById("bsel"), groups = {};
@@ -992,6 +993,17 @@ python -m src.train &amp;&amp; python -m src.explain &amp;&amp; python -m src.an
     });
   });
   function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  var filmVideo = document.getElementById("film-video"), filmPlay = document.getElementById("film-play");
+  function startFilm() {
+    filmPlay.hidden = true; filmVideo.controls = true;
+    var p = filmVideo.play(); if (p && p.catch) p.catch(function () { filmPlay.hidden = false; filmVideo.controls = false; });
+  }
+  if (filmVideo && filmPlay) {
+    filmPlay.addEventListener("click", startFilm);
+    document.getElementById("watch-film").addEventListener("click", function (e) { e.preventDefault(); document.getElementById("film").scrollIntoView({ behavior: "smooth", block: "center" }); startFilm(); });
+    filmVideo.addEventListener("ended", function () { filmVideo.controls = false; filmPlay.hidden = false; filmVideo.currentTime = 0; filmVideo.load(); });
+  }
 
   var citeBtn = document.getElementById("cite-btn");
   if (citeBtn) citeBtn.addEventListener("click", function () {

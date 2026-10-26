@@ -1,0 +1,15 @@
+{
+  "voice": "af_heart",
+  "speed": 0.94,
+  "scenes": [
+    {"id": "hook", "text": "Every hour, millions of buildings consume energy. Lights, cooling, machines that run all night. And much of it is wasted, without anyone noticing."},
+    {"id": "problem", "text": "A monthly bill tells you how much a building used. It never tells you how much it should have used. Without that benchmark, waste stays invisible, and savings stay unproven."},
+    {"id": "intro", "text": "This is Baseline AI, developed by COMPILIX INNOVATIONS. It learns how each building behaves, from its meter, the weather and the calendar, and predicts its energy use, hour by hour."},
+    {"id": "proof", "text": "Tested on five hundred and ninety-one real buildings, and more than nine million hourly readings, it cuts forecast error by forty percent compared with the standard baseline."},
+    {"id": "waste", "text": "When a building uses more than it should, Baseline AI raises a flag. Equipment left running, a broken schedule, a failing system. Teams can act in days, not at the end of the year."},
+    {"id": "savings", "text": "After an efficiency upgrade, it measures the real savings, adjusted for the weather. So investors and programmes know what actually worked."},
+    {"id": "scale", "text": "No sensors to install. No engineering model for every building. One model covers an entire portfolio, from a single campus to a whole country."},
+    {"id": "audience", "text": "For building owners, utilities, investors and governments, Baseline AI turns meter data into decisions, and decisions into energy saved."},
+    {"id": "cta", "text": "Baseline AI. Know what every building should consume. Open source, and ready to pilot with your portfolio."}
+  ]
+}

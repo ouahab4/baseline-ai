@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Baseline AI film</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=block">
+<style>
+  html, body { margin: 0; background: #0b151b; }
+  canvas { display: block; }
+  .warm { font-family: "Archivo"; font-stretch: 125%; font-weight: 800; position: absolute; opacity: 0; }
+  .warm2 { font-family: "IBM Plex Sans"; position: absolute; opacity: 0; }
+  .warm3 { font-family: "IBM Plex Mono"; position: absolute; opacity: 0; }
+</style>
+</head>
+<body>
+<span class="warm">Aa</span><span class="warm2">Aa</span><span class="warm3">Aa</span>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+"use strict";
+const W = 1920, H = 1080;
+const ctx = document.getElementById("c").getContext("2d");
+const COL = {
+  bg: "#0b151b", bg2: "#0f1d24", grid: "rgba(147,167,176,0.07)", ink: "#e7efec", muted: "#93a7b0",
+  dim: "#4f6370", accent: "#3fd1a0", accentSoft: "rgba(63,209,160,0.16)", signal: "#ff7a45",
+  warm: "#ffcf70", building: "#13232c", buildingEdge: "#1e3440"
+};
+const DISPLAY = '"Archivo", "Helvetica Neue", Arial, sans-serif';
+const SANS = '"IBM Plex Sans", "Segoe UI", sans-serif';
+const MONO = '"IBM Plex Mono", Menlo, monospace';
+let TL = null, D = null;
+
+// ---------- helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const prog = (u, a, b) => clamp((u - a) / (b - a));
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const easeInOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const lerp = (a, b, x) => a + (b - a) * x;
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function font(weight, size, family, stretch) { ctx.font = `${weight} ${size}px ${family}`; ctx.fontStretch = stretch || "normal"; }
+function text(str, x, y, opts) {
+  const o = Object.assign({ size: 48, weight: 600, family: SANS, color: COL.ink, align: "left", stretch: "normal", alpha: 1, base: "alphabetic", spacing: 0 }, opts);
+  ctx.save(); ctx.globalAlpha *= o.alpha; font(o.weight, o.size, o.family, o.stretch);
+  ctx.fillStyle = o.color; ctx.textAlign = o.align; ctx.textBaseline = o.base;
+  if (o.spacing) ctx.letterSpacing = o.spacing + "px";
+  ctx.fillText(str, x, y); ctx.restore();
+}
+// a line of text that rises into place from behind a mask
+function reveal(str, x, y, u, t0, opts) {
+  const o = Object.assign({ size: 64, dur: 0.7 }, opts);
+  const p = easeOut(prog(u, t0, t0 + o.dur));
+  if (p <= 0) return;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(-W, y - o.size * 1.05, 3 * W, o.size * 1.4); ctx.clip();
+  text(str, x, y + (1 - p) * o.size * 1.1, Object.assign({}, o, { alpha: (o.alpha == null ? 1 : o.alpha) * p }));
+  ctx.restore();
+}
+// a sentence whose words can be coloured: parts = [[text, color], ...]
+function richLine(parts, x, y, u, t0, opts) {
+  const o = Object.assign({ size: 64, weight: 700, family: DISPLAY, stretch: "expanded", dur: 0.7, align: "left" }, opts);
+  font(o.weight, o.size, o.family, o.stretch);
+  const widths = parts.map(p => ctx.measureText(p[0]).width);
+  const total = widths.reduce((a, b) => a + b, 0);
+  let cx = o.align === "center" ? x - total / 2 : x;
+  parts.forEach((p, i) => { reveal(p[0], cx, y, u, t0 + i * 0.08, Object.assign({}, o, { color: p[1], align: "left" })); cx += widths[i]; });
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function series(values, x, y, w, h, vmax, upto, color, width, opts) {
+  const o = Object.assign({ fill: null, dash: null }, opts);
+  const n = values.length, last = Math.max(1, Math.floor(upto * (n - 1)));
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = "round"; if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); let started = false, lastX = x, firstX = x;
+  for (let i = 0; i <= last; i++) {
+    const v = values[i]; if (v == null) continue;
+    const px = x + (i / (n - 1)) * w, py = y + h - (v / vmax) * h;
+    if (!started) { ctx.moveTo(px, py); started = true; firstX = px; } else ctx.lineTo(px, py);
+    lastX = px;
+  }
+  ctx.stroke();
+  if (o.fill && started) { ctx.lineTo(lastX, y + h); ctx.lineTo(firstX, y + h); ctx.closePath(); ctx.fillStyle = o.fill; ctx.fill(); }
+  ctx.restore();
+}
+function background(t) {
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+  // slow drifting grid, the same "graph paper" as the website hero
+  ctx.save(); ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  const off = (t * 6) % 64;
+  for (let x = -64 + off; x < W; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = -64 + off * 0.5; y < H; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.restore();
+  const g = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1150);
+  g.addColorStop(0, "rgba(11,21,27,0)"); g.addColorStop(1, "rgba(4,9,12,0.85)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function logoMark(x, y, s, p) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s / 26, s / 26);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = COL.ink; ctx.lineWidth = 1.5;
+  roundRect(1, 1, 24, 24, 5); ctx.setLineDash([96]); ctx.lineDashOffset = 96 * (1 - clamp(p * 1.6)); ctx.stroke();
+  ctx.setLineDash([30]); ctx.lineDashOffset = 30 * (1 - clamp(p * 1.6 - 0.5));
+  ctx.strokeStyle = COL.accent; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(4, 17); ctx.lineTo(8, 13); ctx.lineTo(11, 15); ctx.lineTo(15, 8); ctx.lineTo(18, 11); ctx.lineTo(22, 6); ctx.stroke();
+  ctx.setLineDash([2, 2]); ctx.lineDashOffset = 0; ctx.strokeStyle = COL.ink; ctx.lineWidth = 1.2; ctx.globalAlpha *= clamp(p * 2 - 1);
+  ctx.beginPath(); ctx.moveTo(4, 19.5); ctx.lineTo(22, 19.5); ctx.stroke();
+  ctx.restore();
+}
+function brandTag(alpha) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  logoMark(80, 62, 30, 1);
+  text("Baseline AI", 124, 87, { size: 26, weight: 750, family: DISPLAY, stretch: "expanded" });
+  text("COMPILIX INNOVATIONS", W - 80, 87, { size: 18, weight: 500, family: MONO, color: COL.muted, align: "right", spacing: 3 });
+  ctx.restore();
+}
+function kwh(v) { return Math.round(v).toLocaleString("en-US"); }
+
+// ---------- scenes (u = seconds into the scene, d = scene length) ----------
+const city = (() => {
+  const r = rng(7), b = [];
+  let x = -20;
+  while (x < W + 40) {
+    const w = 70 + r() * 120, h = 200 + r() * 470;
+    const wins = [];
+    for (let wy = H - h + 26; wy < H - 30; wy += 30) for (let wx = x + 14; wx < x + w - 18; wx += 24) wins.push({ x: wx, y: wy, on: 0.3 + r() * 3.6, waste: r() < 0.16, ph: r() * 6 });
+    b.push({ x, w, h, wins }); x += w + 6 + r() * 14;
+  }
+  return b;
+})();
+
+const scenes = {
+  hook(u, d) {
+    const night = easeInOut(prog(u, 4.5, 7.5));
+    const zoom = 1 + 0.05 * (u / d);
+    ctx.save(); ctx.translate(W / 2, H); ctx.scale(zoom, zoom); ctx.translate(-W / 2, -H);
+    ctx.fillStyle = `rgba(2,6,9,${0.55 * night})`; ctx.fillRect(0, 0, W, H);
+    city.forEach((b, i) => {
+      const rise = easeOut(prog(u, 0.1 + i * 0.03, 1.2 + i * 0.03));
+      const top = H - b.h * rise;
+      ctx.fillStyle = COL.building; ctx.fillRect(b.x, top, b.w, b.h);
+      ctx.fillStyle = COL.buildingEdge; ctx.fillRect(b.x, top, b.w, 3);
+      if (rise < 1) return;
+      b.wins.forEach(w => {
+        const on = prog(u, w.on, w.on + 0.4);
+        if (on <= 0) return;
+        let col = COL.warm, a = 0.75 * on;
+        if (w.waste) { const flick = prog(u, 5.2, 6.5); a = lerp(a, 0.95, flick); col = flick > 0 ? COL.signal : COL.warm; a *= 0.85 + 0.15 * Math.sin(u * 5 + w.ph); }
+        else a *= lerp(1, 0.18, night);
+        ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(w.x, w.y, 12, 14); ctx.globalAlpha = 1;
+      });
+    });
+    ctx.restore();
+    const shade = ctx.createLinearGradient(0, 0, 0, 560); shade.addColorStop(0, "rgba(11,21,27,0.95)"); shade.addColorStop(1, "rgba(11,21,27,0)");
+    ctx.fillStyle = shade; ctx.fillRect(0, 0, W, 560);
+    richLine([["Every hour, millions of buildings", COL.ink]], 120, 230, u, 0.6, { size: 74 });
+    richLine([["consume energy.", COL.ink]], 120, 320, u, 0.9, { size: 74 });
+    richLine([["Much of it is ", COL.ink], ["wasted.", COL.signal]], 120, 450, u, 6.6, { size: 74 });
+  },
+
+  problem(u, d) {
+    // monthly bill card
+    const cardIn = easeOut(prog(u, 0.3, 1.1));
+    ctx.save(); ctx.globalAlpha = cardIn; ctx.translate(0, (1 - cardIn) * 40);
+    roundRect(120, 300, 520, 400, 14); ctx.fillStyle = COL.bg2; ctx.fill(); ctx.strokeStyle = COL.buildingEdge; ctx.lineWidth = 2; ctx.stroke();
+    text("MONTHLY ENERGY BILL", 170, 380, { size: 22, weight: 500, family: MONO, color: COL.muted, spacing: 3 });
+    text("Office building", 170, 430, { size: 30, weight: 500, color: COL.ink });
+    const total = D.month_total_kwh * easeOut(prog(u, 0.8, 2.6));
+    text(kwh(total), 170, 560, { size: 92, weight: 800, family: DISPLAY, stretch: "expanded" });
+    text("kWh used", 170, 610, { size: 28, weight: 500, color: COL.muted });
+    const q = prog(u, 4.4, 5.0);
+    text("Should it have been less?", 170, 670, { size: 28, weight: 600, color: COL.signal, alpha: q });
+    ctx.restore();
+    // the hidden hourly reality
+    const x = 720, y = 300, w = 1080, h = 400;
+    const draw = easeInOut(prog(u, 1.4, 5.2));
+    text("WHAT THE BILL HIDES · EVERY HOUR OF THE MONTH", x, y - 30, { size: 20, weight: 500, family: MONO, color: COL.muted, spacing: 2, alpha: prog(u, 1.2, 1.8) });
+    const vmax = Math.max(...D.month_actual.filter(v => v != null)) * 1.1;
+    ctx.save(); ctx.strokeStyle = COL.dim; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke(); ctx.restore();
+    series(D.month_actual, x, y, w, h, vmax, draw, COL.ink, 1.6);
+    const exp = prog(u, 5.4, 7.5);
+    if (exp > 0) {
+      series(D.month_expected, x, y, w, h, vmax, exp, COL.accent, 2, { dash: [6, 5] });
+      // excess hours light up in orange
+      const n = D.month_actual.length;
+      for (let i = 0; i < n * exp; i++) {
+        const a = D.month_actual[i], e = D.month_expected[i];
+        if (a == null || e == null || a < e * 1.18) continue;
+        const px = x + (i / (n - 1)) * w;
+        ctx.fillStyle = COL.signal; ctx.globalAlpha = 0.85 * prog(u, 6.2, 7.2);
+        ctx.fillRect(px - 1.5, y + h - (a / vmax) * h, 3, ((a - e) / vmax) * h);
+        ctx.globalAlpha = 1;
+      }
+      text("- - expected use", x, y + h + 50, { size: 22, weight: 500, family: MONO, color: COL.accent, alpha: exp });
+      text("■ use above expectation", x + 300, y + h + 50, { size: 22, weight: 500, family: MONO, color: COL.signal, alpha: prog(u, 6.6, 7.2) });
+    }
+    richLine([["Waste stays invisible. ", COL.ink], ["Savings stay unproven.", COL.muted]], W / 2, 900, u, 8.6, { size: 56, align: "center" });
+  },
+
+  intro(u, d) {
+    // logo reveal, then the logo rises and the system diagram appears
+    const lift = easeInOut(prog(u, 5.0, 6.2));
+    const ly = lerp(470, 200, lift), scale = lerp(1, 0.62, lift);
+    const p = prog(u, 0.2, 2.0);
+    font(800, 140, DISPLAY, "expanded"); const tw = ctx.measureText("Baseline AI").width;
+    const gx = -(120 + 40 + tw) / 2, tx = gx + 160;
+    ctx.save(); ctx.translate(W / 2, ly); ctx.scale(scale, scale);
+    logoMark(gx, -92, 120, p);
+    reveal("Baseline AI", tx, 8, u, 0.9, { size: 140, weight: 800, family: DISPLAY, stretch: "expanded", dur: 0.9 });
+    reveal("by COMPILIX INNOVATIONS", tx + 4, 90, u, 1.8, { size: 34, weight: 500, family: MONO, color: COL.accent, spacing: 4 });
+    ctx.restore();
+    if (u < 5.0) return;
+    const inputs = [["Meter data", "hourly kWh"], ["Weather", "temperature, humidity"], ["Calendar", "hours, weekends, holidays"]];
+    const cx = W / 2, cy = 640;
+    inputs.forEach((inp, i) => {
+      const a = easeOut(prog(u, 5.6 + i * 0.45, 6.3 + i * 0.45));
+      const bx = 160, by = 470 + i * 140;
+      ctx.save(); ctx.globalAlpha = a; ctx.translate((1 - a) * -40, 0);
+      roundRect(bx, by, 400, 104, 12); ctx.fillStyle = COL.bg2; ctx.fill(); ctx.strokeStyle = COL.buildingEdge; ctx.lineWidth = 2; ctx.stroke();
+      text(inp[0], bx + 32, by + 50, { size: 34, weight: 700, family: DISPLAY, stretch: "expanded" });
+      text(inp[1], bx + 32, by + 82, { size: 22, weight: 500, color: COL.muted });
+      ctx.restore();
+      // flowing particles into the model
+      if (a >= 1) {
+        for (let k = 0; k < 6; k++) {
+          const f = ((u * 0.55 + k / 6 + i * 0.13) % 1);
+          const sx = bx + 400, sy = by + 52, ex = cx - 150, ey = cy;
+          const px = lerp(sx, ex, f), py = lerp(sy, ey, easeInOut(f));
+          ctx.fillStyle = COL.accent; ctx.globalAlpha = 0.85 * Math.sin(f * Math.PI);
+          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        }
+      }
+    });
+    const core = easeOut(prog(u, 6.6, 7.4));
+    if (core > 0) {
+      ctx.save(); ctx.globalAlpha = core;
+      const pulse = 1 + 0.03 * Math.sin(u * 3);
+      ctx.translate(cx, cy); ctx.scale(pulse * core, pulse * core);
+      roundRect(-150, -90, 300, 180, 22); ctx.fillStyle = COL.accentSoft; ctx.fill(); ctx.strokeStyle = COL.accent; ctx.lineWidth = 3; ctx.stroke();
+      text("AI model", 0, -6, { size: 40, weight: 800, family: DISPLAY, stretch: "expanded", align: "center" });
+      text("learns each building", 0, 40, { size: 24, weight: 500, color: COL.muted, align: "center" });
+      ctx.restore();
+    }
+    const out = easeOut(prog(u, 8.0, 8.8));
+    if (out > 0) {
+      const ox = 1290, oy = 520;
+      ctx.save(); ctx.globalAlpha = out;
+      ctx.strokeStyle = COL.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx + 150, cy); ctx.lineTo(ox - 20, cy); ctx.stroke();
+      roundRect(ox, oy, 480, 240, 14); ctx.fillStyle = COL.bg2; ctx.fill(); ctx.strokeStyle = COL.buildingEdge; ctx.lineWidth = 2; ctx.stroke();
+      text("Hourly forecast", ox + 32, oy + 56, { size: 34, weight: 700, family: DISPLAY, stretch: "expanded" });
+      text("for every building", ox + 32, oy + 90, { size: 22, weight: 500, color: COL.muted });
+      const vmax = Math.max(...D.week_forecast.slice(0, 72).filter(v => v != null)) * 1.1;
+      series(D.week_forecast.slice(0, 72), ox + 32, oy + 110, 416, 100, vmax, prog(u, 8.4, 10.5), COL.accent, 3);
+      ctx.restore();
+    }
+  },
+
+  proof(u, d) {
+    const x = 140, y = 190, w = 1640, h = 430;
+    text("REAL OFFICE BUILDING · ONE WEEK THE MODEL HAD NEVER SEEN", x, y - 40, { size: 22, weight: 500, family: MONO, color: COL.muted, spacing: 2, alpha: prog(u, 0.3, 0.9) });
+    const vmax = Math.max(...D.week_actual.filter(v => v != null)) * 1.12;
+    ctx.save(); ctx.strokeStyle = COL.dim; ctx.globalAlpha = 0.5;
+    for (let k = 0; k <= 4; k++) { ctx.beginPath(); ctx.moveTo(x, y + (h * k) / 4); ctx.lineTo(x + w, y + (h * k) / 4); ctx.stroke(); }
+    ctx.restore();
+    const draw = easeInOut(prog(u, 0.6, 7.0));
+    series(D.week_forecast, x, y, w, h, vmax, draw, COL.accent, 4, { fill: "rgba(63,209,160,0.08)" });
+    series(D.week_actual, x, y, w, h, vmax, draw, COL.ink, 2.2);
+    ctx.save(); ctx.globalAlpha = prog(u, 0.8, 1.4);
+    ctx.fillStyle = COL.ink; ctx.fillRect(x + w - 470, y - 50, 30, 4); text("Metered", x + w - 430, y - 40, { size: 22, weight: 500, color: COL.muted });
+    ctx.fillStyle = COL.accent; ctx.fillRect(x + w - 290, y - 50, 30, 4); text("AI forecast", x + w - 250, y - 40, { size: 22, weight: 500, color: COL.muted });
+    ctx.restore();
+    const stats = [
+      { at: 1.6, value: D.buildings, fmt: v => Math.round(v).toString(), label: "real buildings", color: COL.ink },
+      { at: 3.4, value: 9.2, fmt: v => v.toFixed(1) + "M", label: "hourly readings", color: COL.ink },
+      { at: 6.4, value: 40, fmt: v => Math.round(v) + "%", label: "less forecast error", color: COL.accent }
+    ];
+    stats.forEach((s, i) => {
+      const a = easeOut(prog(u, s.at, s.at + 0.6)), c = easeOut(prog(u, s.at, s.at + 1.6));
+      const sx = 140 + i * 580;
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(0, (1 - a) * 30);
+      ctx.fillStyle = i === 2 ? COL.accent : COL.dim; ctx.fillRect(sx, 720, 4, 190);
+      text(s.fmt(s.value * c), sx + 36, 840, { size: 120, weight: 800, family: DISPLAY, stretch: "expanded", color: s.color });
+      text(s.label, sx + 40, 895, { size: 32, weight: 500, color: COL.muted });
+      ctx.restore();
+    });
+  },
+
+  waste(u, d) {
+    const x = 140, y = 240, w = 1640, h = 470;
+    const n = D.daily_actual.length;
+    const vmax = Math.max(...D.daily_actual.filter(v => v != null)) * 1.12;
+    text("ONE BUILDING · EVERY DAY FOR SIX MONTHS", x, y - 60, { size: 22, weight: 500, family: MONO, color: COL.muted, spacing: 2, alpha: prog(u, 0.2, 0.8) });
+    const bw = w / n;
+    const flagT = 4.2;
+    for (let i = 0; i < n; i++) {
+      const v = D.daily_actual[i]; if (v == null) continue;
+      const g = easeOut(prog(u, 0.4 + (i / n) * 2.4, 0.9 + (i / n) * 2.4));
+      const bh = (v / vmax) * h * g;
+      const flagged = D.daily_anomaly[i] && u > flagT;
+      ctx.fillStyle = flagged ? COL.signal : "#4b5f6b";
+      ctx.globalAlpha = flagged ? 1 : 0.9; ctx.fillRect(x + i * bw + 1, y + h - bh, bw - 2, bh); ctx.globalAlpha = 1;
+      if (flagged) {
+        const pp = ((u - flagT) * 0.9 + i * 0.07) % 1;
+        ctx.strokeStyle = COL.signal; ctx.globalAlpha = 0.6 * (1 - pp); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x + i * bw + bw / 2, y + h - bh - 14, 8 + pp * 26, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }
+    series(D.daily_expected, x, y, w, h, vmax, easeInOut(prog(u, 2.2, 4.0)), COL.accent, 3.5);
+    ctx.save(); ctx.globalAlpha = prog(u, 2.4, 3.0);
+    ctx.fillStyle = "#4b5f6b"; ctx.fillRect(x, y - 30, 24, 14); text("Metered per day", x + 36, y - 16, { size: 22, weight: 500, color: COL.muted });
+    ctx.fillStyle = COL.accent; ctx.fillRect(x + 290, y - 25, 30, 4); text("Expected use", x + 334, y - 16, { size: 22, weight: 500, color: COL.muted });
+    ctx.fillStyle = COL.signal; ctx.globalAlpha *= prog(u, flagT, flagT + 0.5); ctx.fillRect(x + 540, y - 30, 24, 14);
+    text("Flagged: far above expected", x + 576, y - 16, { size: 22, weight: 500, color: COL.signal });
+    ctx.restore();
+    richLine([["Waste, flagged ", COL.ink], ["automatically.", COL.signal]], x, 850, u, 5.2, { size: 70 });
+    richLine([["Teams act in days, not at year end.", COL.muted]], x, 940, u, 9.6, { size: 46, weight: 600 });
+  },
+
+  savings(u, d) {
+    const x = 140, y = 220, w = 1640, h = 430;
+    const base = D.save_baseline, act = D.save_actual, n = base.length, cut = D.save_cut;
+    const vmax = Math.max(...base.concat(act).filter(v => v != null)) * 1.15;
+    text("ILLUSTRATION ON REAL METER DATA · A 15% UPGRADE", x, y - 50, { size: 22, weight: 500, family: MONO, color: COL.muted, spacing: 2, alpha: prog(u, 0.2, 0.8) });
+    const draw = easeInOut(prog(u, 0.4, 5.0));
+    const cutX = x + (cut / (n - 1)) * w;
+    // shaded saving area after the upgrade
+    const area = prog(u, 4.2, 6.0);
+    if (area > 0) {
+      ctx.save(); ctx.globalAlpha = 0.28 * area; ctx.fillStyle = COL.accent; ctx.beginPath();
+      for (let i = cut; i < n; i++) { const px = x + (i / (n - 1)) * w; const py = y + h - (base[i] / vmax) * h; i === cut ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+      for (let i = n - 1; i >= cut; i--) { const px = x + (i / (n - 1)) * w; ctx.lineTo(px, y + h - (act[i] / vmax) * h); }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    series(base, x, y, w, h, vmax, draw, COL.muted, 2.5, { dash: [8, 6] });
+    series(act, x, y, w, h, vmax, draw, COL.accent, 3.5);
+    if (draw * (n - 1) >= cut) {
+      ctx.save(); ctx.strokeStyle = COL.ink; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cutX, y - 10); ctx.lineTo(cutX, y + h); ctx.stroke(); ctx.restore();
+      text("Efficiency upgrade", cutX + 16, y + 20, { size: 24, weight: 600, color: COL.ink });
+    }
+    ctx.save(); ctx.globalAlpha = prog(u, 0.6, 1.2);
+    ctx.strokeStyle = COL.muted; ctx.setLineDash([8, 6]); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, y + h + 50); ctx.lineTo(x + 34, y + h + 50); ctx.stroke(); ctx.setLineDash([]);
+    text("Expected without the upgrade (weather-adjusted)", x + 48, y + h + 58, { size: 22, weight: 500, color: COL.muted });
+    ctx.fillStyle = COL.accent; ctx.fillRect(x + 640, y + h + 48, 34, 4); text("Metered", x + 688, y + h + 58, { size: 22, weight: 500, color: COL.muted });
+    ctx.restore();
+    const lbl = easeOut(prog(u, 5.4, 6.2)) * (draw >= 1 ? 1 : 0);
+    if (lbl > 0) {
+      ctx.save(); ctx.globalAlpha = lbl;
+      roundRect(1280, 130, 500, 80, 12); ctx.fillStyle = COL.accentSoft; ctx.fill(); ctx.strokeStyle = COL.accent; ctx.lineWidth = 2; ctx.stroke();
+      text("Energy saved, measured", 1310, 182, { size: 30, weight: 700, family: DISPLAY, stretch: "expanded", color: COL.accent });
+      ctx.restore();
+    }
+    richLine([["Savings, ", COL.ink], ["measured.", COL.accent], [" Not assumed.", COL.muted]], x, 880, u, 6.0, { size: 70 });
+  },
+
+  scale(u, d) {
+    const cols = 41, rows = 15, gap = 34, gx = (W - (cols - 1) * gap) / 2, gy = 200;
+    const r = rng(11);
+    let k = 0;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      if (k >= D.buildings) break;
+      const appear = easeOut(prog(u, 0.3 + (i + j) * 0.035, 0.7 + (i + j) * 0.035));
+      const lit = prog(u, 5.4 + i * 0.05 + r() * 0.4, 5.9 + i * 0.05 + r() * 0.4);
+      const px = gx + i * gap, py = gy + j * gap;
+      ctx.fillStyle = lit > 0 ? COL.accent : "#3b4e59"; ctx.globalAlpha = appear * (0.55 + 0.45 * lit);
+      ctx.beginPath(); ctx.arc(px, py, 7 + 2 * lit, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      k++;
+    }
+    const scanX = lerp(-100, W + 100, prog(u, 5.2, 8.0));
+    if (u > 5.2 && u < 8.2) { const g = ctx.createLinearGradient(scanX - 160, 0, scanX, 0); g.addColorStop(0, "rgba(63,209,160,0)"); g.addColorStop(1, "rgba(63,209,160,0.22)"); ctx.fillStyle = g; ctx.fillRect(scanX - 160, gy - 40, 160, rows * gap + 50); }
+    text(`${D.buildings} buildings`, W / 2, 130, { size: 30, weight: 500, family: MONO, color: COL.muted, align: "center", spacing: 3, alpha: prog(u, 0.4, 1.0) });
+    const chips = [["No sensors to install", 0.9], ["No engineering model per building", 2.9]];
+    chips.forEach((c, i) => {
+      const a = easeOut(prog(u, c[1], c[1] + 0.6));
+      font(600, 34, SANS); const tw = ctx.measureText(c[0]).width;
+      const cx = i === 0 ? W / 2 - 40 - tw - 60 : W / 2 + 40;
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(0, (1 - a) * 24);
+      roundRect(cx, 770, tw + 60, 72, 36); ctx.fillStyle = COL.bg2; ctx.fill(); ctx.strokeStyle = COL.buildingEdge; ctx.lineWidth = 2; ctx.stroke();
+      text("✕", cx + 30, 816, { size: 26, weight: 600, color: COL.signal, align: "center" });
+      text(c[0], cx + 52, 817, { size: 34, weight: 600 });
+      ctx.restore();
+    });
+    richLine([["One model. ", COL.accent], ["From one campus to a whole country.", COL.ink]], W / 2, 960, u, 6.4, { size: 60, align: "center" });
+  },
+
+  audience(u, d) {
+    const items = [
+      ["Building owners", "Find waste", "M4 21V7l8-4 8 4v14M9 21v-6h6v6"],
+      ["Utilities", "Plan demand", "M13 3l-6 10h5l-2 8 7-11h-5z"],
+      ["Investors", "Verify savings", "M4 19h16M6 16l4-5 3 3 5-7M15 7h3v3"],
+      ["Governments", "Track progress", "M12 3a9 9 0 1 0 0.01 0M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"]
+    ];
+    const cw = 380, gap = 40, x0 = (W - (4 * cw + 3 * gap)) / 2, y0 = 300;
+    items.forEach((it, i) => {
+      const a = easeOut(prog(u, 0.6 + i * 1.0, 1.3 + i * 1.0));
+      const x = x0 + i * (cw + gap);
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(0, (1 - a) * 60);
+      roundRect(x, y0, cw, 360, 16); ctx.fillStyle = COL.bg2; ctx.fill(); ctx.strokeStyle = COL.buildingEdge; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = COL.accentSoft; ctx.beginPath(); ctx.arc(x + 70, y0 + 80, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(x + 70 - 30, y0 + 80 - 30); ctx.scale(2.5, 2.5); ctx.strokeStyle = COL.accent; ctx.lineWidth = 1.6; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke(new Path2D(it[2])); ctx.restore();
+      text(it[0], x + 36, y0 + 200, { size: 34, weight: 700, family: DISPLAY, stretch: "expanded" });
+      text(it[1], x + 36, y0 + 250, { size: 30, weight: 500, color: COL.accent });
+      ctx.restore();
+    });
+    const flow = [["Meter data", COL.muted], ["  →  ", COL.dim], ["decisions", COL.ink], ["  →  ", COL.dim], ["energy saved", COL.accent]];
+    richLine(flow, W / 2, 850, u, 6.8, { size: 62, align: "center" });
+  },
+
+  cta(u, d) {
+    const p = prog(u, 0.2, 1.8);
+    logoMark(W / 2 - 520, 300, 130, p);
+    reveal("Baseline AI", W / 2 - 360, 420, u, 0.5, { size: 150, weight: 800, family: DISPLAY, stretch: "expanded", dur: 0.9 });
+    reveal("Know what every building should consume.", W / 2, 540, u, 1.6, { size: 52, weight: 600, align: "center", color: COL.ink });
+    const a = easeOut(prog(u, 3.4, 4.2));
+    ctx.save(); ctx.globalAlpha = a;
+    font(600, 40, MONO); const tw = ctx.measureText("baselineai.bacai.space").width;
+    roundRect(W / 2 - tw / 2 - 40, 620, tw + 80, 84, 42); ctx.fillStyle = COL.accent; ctx.fill();
+    text("baselineai.bacai.space", W / 2, 676, { size: 40, weight: 600, family: MONO, color: "#06140f", align: "center" });
+    text("Open source · Ready to pilot", W / 2, 780, { size: 32, weight: 500, color: COL.muted, align: "center" });
+    ctx.restore();
+    text("COMPILIX INNOVATIONS · SPASU BAC Students", W / 2, 960, { size: 26, weight: 500, family: MONO, color: COL.muted, align: "center", spacing: 3, alpha: prog(u, 4.6, 5.4) });
+  }
+};
+
+// ---------- timeline ----------
+const FADE = 0.45;
+window.renderAt = function (t) {
+  background(t);
+  TL.scenes.forEach(s => {
+    const u = t - s.start, d = s.duration;
+    if (u < -FADE || u > d + FADE) return;
+    let a = 1;
+    if (s.id !== "hook") a = Math.min(a, prog(u, -FADE, FADE));
+    if (s.id !== "cta") a = Math.min(a, 1 - prog(u, d - FADE, d + FADE));
+    if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = a; scenes[s.id](Math.max(0, u), d); ctx.restore();
+  });
+  const proofStart = TL.scenes.find(s => s.id === "proof").start, ctaStart = TL.scenes.find(s => s.id === "cta").start;
+  brandTag(clamp((t - proofStart + 0.2) / 0.8) * (1 - clamp((t - ctaStart + 0.5) / 0.6)));
+  // fade from and to black
+  const edge = Math.max(1 - clamp(t / 0.8), clamp((t - (TL.total - 1.0)) / 1.0));
+  if (edge > 0) { ctx.fillStyle = `rgba(0,0,0,${edge})`; ctx.fillRect(0, 0, W, H); }
+};
+
+window.ready = (async () => {
+  [TL, D] = await Promise.all([fetch("build/timeline.json").then(r => r.json()), fetch("build/film_data.json").then(r => r.json())]);
+  await document.fonts.load('800 80px "Archivo"'); await document.fonts.load('600 40px "IBM Plex Sans"');
+  await document.fonts.load('500 40px "IBM Plex Mono"'); await document.fonts.ready;
+  return TL.total;
+})();
+</script>
+</body>
+</html>
