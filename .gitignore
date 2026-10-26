@@ -1,0 +1,8 @@
+/data/
+models/*.joblib
+reports/*_log.txt
+__pycache__/
+.ipynb_checkpoints/
+paper/*.aux
+paper/*.log
+paper/*.out

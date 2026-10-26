@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baseline AI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Baseline AI by COMPILIX INNOVATIONS: open-source AI that forecasts hourly building electricity use, detects energy waste and verifies retrofit savings. Trained and tested on 591 real buildings.">
+<meta property="og:title" content="Baseline AI: know what every building should consume">
+<meta property="og:description" content="Hourly energy forecasts, waste detection and savings verification for building portfolios. Open source, tested on 591 real buildings.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://baselineai.bacai.space/">
+<link rel="canonical" href="https://baselineai.bacai.space/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: an engineering datasheet for policy readers. Wide expanded display type set flush left,
+   a dark "control room" band carrying a live load curve, then ruled sections with a metric margin. */
+:root {
+  --paper: #f3f6f5;
+  --surface: #ffffff;
+  --ink: #0e1a22;
+  --muted: #51626c;
+  --line: #d6dfdc;
+  --accent: #0a7a5c;
+  --accent-soft: #dcefe8;
+  --on-accent: #ffffff;
+  --signal: #c2410c;
+  --signal-soft: #fbe5da;
+  --weather: #7d93a3;
+  --band: #0c171e;
+  --band-ink: #e7efec;
+  --band-muted: #93a7b0;
+  --band-line: #1f2f38;
+  --band-accent: #3fd1a0;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --step-4: clamp(2.25rem, 1.2rem + 4.2vw, 4.25rem);
+  --radius: 6px;
+  --max: 1180px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0b1216; --surface: #111c22; --ink: #e5ece9; --muted: #95a6ae; --line: #22323a;
+    --accent: #3cc79a; --accent-soft: #123a2f; --on-accent: #06140f; --signal: #ff8a57; --signal-soft: #3a1d12;
+    --weather: #6f8a9a; --band: #070d10; --band-ink: #e7efec; --band-muted: #93a7b0; --band-line: #1a2930;
+    --band-accent: #3fd1a0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0b1216; --surface: #111c22; --ink: #e5ece9; --muted: #95a6ae; --line: #22323a;
+  --accent: #3cc79a; --accent-soft: #123a2f; --on-accent: #06140f; --signal: #ff8a57; --signal-soft: #3a1d12;
+  --weather: #6f8a9a; --band: #070d10; --band-ink: #e7efec; --band-muted: #93a7b0; --band-line: #1a2930;
+  --band-accent: #3fd1a0; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; transition: none !important; } }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: var(--step-0); line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--band); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wrap {
+  max-width: var(--max); margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 720px) { .wrap { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); } }
+h1, h2, h3 { font-family: var(--font-display); font-stretch: 112%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-3); font-weight: 700; line-height: 1.1; }
+h3 { font-size: var(--step-1); font-weight: 650; line-height: 1.25; font-stretch: 100%; }
+p { margin: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: var(--step-1); color: var(--muted); max-width: 62ch; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--band); border-bottom: 1px solid var(--band-line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--band-ink); text-decoration: none; font-family: var(--font-display); font-weight: 750; font-stretch: 118%; font-size: 1.05rem; letter-spacing: 0.01em; }
+.brand svg { flex: none; }
+.nav { display: flex; gap: 22px; align-items: center; }
+.nav a { color: var(--band-muted); text-decoration: none; font-size: var(--step--1); font-weight: 500; }
+.nav a:hover { color: var(--band-ink); }
+.nav .btn { color: var(--on-accent); }
+@media (max-width: 860px) { .nav a:not(.btn) { display: none; } }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius); font-weight: 600; font-size: 0.9375rem; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--font-body); line-height: 1.2; }
+.btn-primary { background: var(--band-accent); color: #06140f; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { color: var(--band-ink); border-color: var(--band-line); background: transparent; }
+.btn-ghost:hover { border-color: var(--band-muted); }
+
+/* Hero */
+.hero { background: var(--band); color: var(--band-ink); position: relative; overflow: hidden; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--band-line) 1px, transparent 1px), linear-gradient(90deg, var(--band-line) 1px, transparent 1px);
+  background-size: 48px 48px; opacity: 0.35; mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); }
+.hero .wrap { position: relative; z-index: 1; padding-block: clamp(48px, 7vw, 88px) 0; display: grid; gap: 40px; }
+.hero .eyebrow { color: var(--band-accent); }
+.hero h1 { font-size: var(--step-4); font-weight: 780; font-stretch: 122%; line-height: 0.98; max-width: 16ch; margin-top: 14px; }
+.hero h1 em { font-style: normal; color: var(--band-accent); }
+.hero .lede { color: var(--band-muted); margin-top: 22px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.scope { background: color-mix(in srgb, var(--band) 70%, #000 30%); border: 1px solid var(--band-line); border-radius: 10px; padding: 18px 18px 12px; }
+.scope-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; align-items: baseline; margin-bottom: 10px; }
+.scope-title { font-family: var(--font-mono); font-size: var(--step--1); color: var(--band-muted); }
+.scope-title b { color: var(--band-ink); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--step--1); color: var(--band-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.scope-canvas { position: relative; height: clamp(220px, 32vw, 320px); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--band-line); margin-top: 8px; }
+.stat { padding: 22px 16px 26px 0; border-right: 1px solid var(--band-line); padding-left: 16px; }
+.stat:first-child { padding-left: 0; }
+.stat:last-child { border-right: 0; }
+.stat .v { font-family: var(--font-display); font-stretch: 115%; font-weight: 700; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); line-height: 1; color: var(--band-ink); }
+.stat .k { margin-top: 8px; font-size: var(--step--1); color: var(--band-muted); max-width: 24ch; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat:nth-child(2) { border-right: 0; } .stat:nth-child(3) { padding-left: 0; } .stat:nth-child(-n+2) { border-bottom: 1px solid var(--band-line); } }
+
+/* Sections */
+section { padding-block: clamp(56px, 8vw, 104px); border-bottom: 1px solid var(--line); }
+.sec-head { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 16px 48px; margin-bottom: 44px; }
+.sec-head .lede { margin-top: 14px; }
+@media (max-width: 860px) { .sec-head { grid-template-columns: minmax(0, 1fr); } }
+
+/* Impact */
+.context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin-bottom: 40px; }
+.context > div { padding: 24px; border-right: 1px solid var(--line); min-width: 0; }
+.context > div:last-child { border-right: 0; }
+.context .big { font-family: var(--font-display); font-stretch: 118%; font-weight: 750; font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.25rem); line-height: 1; color: var(--accent); }
+.context p { margin-top: 10px; color: var(--muted); font-size: 0.9375rem; }
+.context small { display: block; margin-top: 10px; font-size: var(--step--1); color: var(--muted); }
+@media (max-width: 860px) { .context { grid-template-columns: minmax(0, 1fr); } .context > div { border-right: 0; border-bottom: 1px solid var(--line); } .context > div:last-child { border-bottom: 0; } }
+.who { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); }
+.who article { padding: 28px 28px 28px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; min-width: 0; }
+.who article:nth-child(odd) { border-right: 1px solid var(--line); }
+.who article:nth-child(even) { padding-left: 28px; }
+.who .ico { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.who .role { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); letter-spacing: 0.04em; }
+.who h3 { margin-top: 4px; }
+.who p { margin-top: 8px; color: var(--muted); }
+.who .proof { margin-top: 14px; font-size: 0.9375rem; color: var(--ink); border-left: 2px solid var(--accent); padding-left: 12px; }
+@media (max-width: 860px) { .who { grid-template-columns: minmax(0, 1fr); } .who article:nth-child(odd) { border-right: 0; } .who article:nth-child(even) { padding-left: 0; } }
+.scale-note { margin-top: 36px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.scale-note > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; min-width: 0; }
+.scale-note .tag { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); }
+.scale-note h3 { margin-top: 6px; }
+.scale-note p { margin-top: 8px; color: var(--muted); font-size: 0.9375rem; }
+.scale-note .ours { border-color: var(--accent); }
+.scale-note .ours .tag { color: var(--accent); }
+@media (max-width: 720px) { .scale-note { grid-template-columns: minmax(0, 1fr); } }
+
+/* Evidence */
+.evidence { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; min-width: 0; }
+.panel h3 { font-size: 1rem; }
+.panel .sub { color: var(--muted); font-size: var(--step--1); margin-top: 4px; }
+.chart-box { position: relative; height: 400px; margin-top: 14px; }
+.chart-box.short { height: 400px; }
+.checks { display: grid; gap: 0; }
+.check { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px; padding-block: 16px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.check:last-child { border-bottom: 0; }
+.check .v { font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: 1.75rem; color: var(--accent); line-height: 1; }
+.check p { color: var(--muted); font-size: 0.9375rem; }
+.check p b { color: var(--ink); font-weight: 600; }
+@media (max-width: 900px) { .evidence { grid-template-columns: minmax(0, 1fr); } }
+.evidence-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 28px; }
+@media (max-width: 900px) { .evidence-2 { grid-template-columns: minmax(0, 1fr); } }
+.tbl-wrap { overflow-x: auto; margin-top: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+td.r, th.r { text-align: right; }
+.bar-cell { width: 40%; min-width: 120px; }
+.mini-bar { height: 8px; background: var(--accent-soft); border-radius: 4px; position: relative; overflow: hidden; }
+.mini-bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+
+/* Method */
+.pipeline { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); counter-reset: step; }
+.pipeline li { padding: 24px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); counter-increment: step; min-width: 0; background: var(--surface); }
+.pipeline li::before { content: counter(step, decimal-leading-zero); font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); display: block; margin-bottom: 10px; }
+.pipeline p { color: var(--muted); font-size: 0.9375rem; margin-top: 8px; }
+.pipeline code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--ink); background: var(--paper); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); }
+@media (max-width: 900px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pipeline { grid-template-columns: minmax(0, 1fr); } }
+.two-models { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-top: 40px; }
+.model-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; min-width: 0; }
+.model-card .tag { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); }
+.model-card h3 { margin-top: 6px; }
+.model-card p { margin-top: 8px; color: var(--muted); }
+.model-card ul { margin: 12px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.9375rem; }
+@media (max-width: 760px) { .two-models { grid-template-columns: minmax(0, 1fr); } }
+.rigor { margin-top: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.rigor div { min-width: 0; }
+.rigor h3 { font-size: 0.9375rem; font-stretch: 100%; }
+.rigor p { color: var(--muted); font-size: 0.875rem; margin-top: 6px; }
+@media (max-width: 900px) { .rigor { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .rigor { grid-template-columns: minmax(0, 1fr); } }
+.stack { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--font-mono); font-size: 0.8125rem; border: 1px solid var(--line); background: var(--surface); padding: 5px 10px; border-radius: 999px; color: var(--muted); }
+
+/* Platform */
+.platform { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.pf-bar { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+select, input[type="date"], input[type="range"] { font: inherit; font-size: 0.9375rem; color: var(--ink); }
+select, input[type="date"] { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; max-width: 100%; }
+.field.grow { flex: 1 1 260px; }
+.field.grow select { width: 100%; }
+.tabs { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { font: inherit; font-size: 0.9375rem; font-weight: 500; background: none; border: 0; border-bottom: 2px solid transparent; padding: 14px 12px 12px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.pf-body { padding: 20px; }
+.pf-controls { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end; margin-bottom: 14px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.seg button { font: inherit; font-size: 0.875rem; background: var(--surface); color: var(--muted); border: 0; padding: 7px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.pf-chart { position: relative; height: 340px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-top: 18px; border-top: 1px solid var(--line); }
+.kpi { padding: 14px 16px 4px 0; min-width: 0; }
+.kpi .k { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi .v { font-family: var(--font-display); font-stretch: 110%; font-weight: 700; font-size: 1.5rem; margin-top: 4px; }
+.kpi .v.good { color: var(--accent); }
+.kpi .v.bad { color: var(--signal); }
+@media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pf-note { margin-top: 14px; font-size: var(--step--1); color: var(--muted); }
+.events { margin-top: 18px; }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: var(--signal-soft); color: var(--signal); }
+.range-out { font-family: var(--font-mono); font-size: 0.875rem; color: var(--ink); min-width: 3.5ch; display: inline-block; }
+.range-row { display: flex; align-items: center; gap: 10px; }
+input[type="range"] { accent-color: var(--accent); width: 180px; max-width: 100%; }
+.status { padding: 40px 20px; color: var(--muted); text-align: center; }
+
+/* Use */
+.use-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; }
+@media (max-width: 900px) { .use-grid { grid-template-columns: minmax(0, 1fr); } }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent); display: grid; place-items: center; font-family: var(--font-mono); font-size: 0.8125rem; }
+.steps h3 { font-size: 1rem; font-stretch: 100%; }
+.steps p { color: var(--muted); font-size: 0.9375rem; margin-top: 4px; }
+.code { position: relative; margin-top: 10px; background: var(--band); color: var(--band-ink); border-radius: var(--radius); }
+.code pre { margin: 0; padding: 14px 72px 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6; }
+.code .copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 0.75rem; font-family: var(--font-mono); background: var(--band-line); color: var(--band-ink); border: 0; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.code .c { color: var(--band-muted); }
+
+/* Partner */
+.partner { background: var(--band); color: var(--band-ink); border-bottom: 0; }
+.partner .eyebrow { color: var(--band-accent); }
+.partner .lede { color: var(--band-muted); }
+.partner-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--band-line); }
+.partner-grid > div { padding: 24px 24px 24px 0; min-width: 0; }
+.partner-grid > div + div { padding-left: 24px; border-left: 1px solid var(--band-line); }
+.partner-grid .tag { font-family: var(--font-mono); font-size: var(--step--1); color: var(--band-accent); }
+.partner-grid h3 { margin-top: 6px; }
+.partner-grid p, .partner-grid li { color: var(--band-muted); font-size: 0.9375rem; }
+.partner-grid ul { margin: 10px 0 0; padding-left: 18px; }
+@media (max-width: 860px) { .partner-grid { grid-template-columns: minmax(0, 1fr); } .partner-grid > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--band-line); } }
+.partner-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+/* Research paper */
+.paper { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 40px; align-items: start; }
+.paper-cover { display: block; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: #fff; box-shadow: 0 1px 0 var(--line), 0 18px 40px -24px rgba(14, 26, 34, 0.45); transition: transform 0.2s ease; }
+.paper-cover:hover { transform: translateY(-3px); }
+.paper-cover img { display: block; width: 100%; height: auto; }
+.paper-info { min-width: 0; }
+.paper-info .tag { font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); }
+.paper-info h3 { font-family: var(--font-display); font-stretch: 105%; font-size: var(--step-2); line-height: 1.2; margin-top: 10px; max-width: 30ch; }
+.paper-info .authors { margin-top: 16px; font-weight: 600; }
+.paper-info .affil { color: var(--muted); font-size: 0.9375rem; }
+.paper-info .abstract { margin-top: 16px; color: var(--muted); max-width: 64ch; }
+.paper-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.btn-solid { background: var(--accent); color: var(--on-accent); }
+.btn-solid:hover { filter: brightness(1.08); }
+.btn-line { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-line:hover { border-color: var(--muted); }
+.cite { margin-top: 16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); white-space: pre-wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+@media (max-width: 760px) { .paper { grid-template-columns: minmax(0, 1fr); } .paper-cover { max-width: 280px; } }
+.partner-grid.pilot { margin-top: 24px; }
+.partner-grid.pilot ul { margin-top: 8px; }
+footer { background: var(--band); color: var(--band-muted); font-size: var(--step--1); border-top: 1px solid var(--band-line); }
+footer .wrap { padding-block: 28px; display: grid; gap: 10px; }
+footer a { color: var(--band-ink); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Baseline AI home">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 17 L8 13 L11 15 L15 8 L18 11 L22 6" fill="none" stroke="#3fd1a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19.5 H22" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/></svg>
+      Baseline AI
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#impact">Impact</a>
+      <a href="#evidence">Results</a>
+      <a href="#method">Method</a>
+      <a href="#use">Use it</a>
+      <a href="#research">Paper</a>
+      <a href="#about">About</a>
+      <a class="btn btn-primary" href="#platform">Open the platform</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Open-source AI for building energy · COMPILIX INNOVATIONS</p>
+      <h1>Know what every building <em>should</em> consume.</h1>
+      <p class="lede">Baseline AI forecasts hourly electricity use from weather, calendar and meter history. When a building uses more than it should, it flags the waste. After a retrofit, it measures the real savings. Trained and tested on <span data-stat="buildings">591</span> real buildings.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#platform">Try it on real buildings</a>
+        <a class="btn btn-ghost" href="#method">How it works</a>
+        <a class="btn btn-ghost" href="https://github.com/ouahab4/baseline-ai" rel="noopener">Code on GitHub</a>
+      </div>
+    </div>
+    <div class="scope" aria-label="Live forecast example">
+      <div class="scope-head">
+        <p class="scope-title">Unseen test data · <b id="hero-building">office building</b> · 14 days, hourly kWh</p>
+        <div class="legend">
+          <span><i class="swatch" style="background: var(--band-ink)"></i>Metered</span>
+          <span><i class="swatch" style="background: var(--band-accent)"></i>Day-ahead forecast</span>
+        </div>
+      </div>
+      <div class="scope-canvas"><canvas id="hero-chart" role="img" aria-label="Metered and forecast hourly electricity use over 14 days"></canvas></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v num" data-stat="buildings">591</div><div class="k">real buildings on 4 campuses, 14 building types</div></div>
+      <div class="stat"><div class="v num" data-stat="readings">9.2M</div><div class="k">hourly meter readings, 2016–2017</div></div>
+      <div class="stat"><div class="v num" data-stat="dayahead">13.8%</div><div class="k">median day-ahead error (CV-RMSE) on unseen months</div></div>
+      <div class="stat"><div class="v num" data-stat="cut">40%</div><div class="k">less error than the "same hour last week" baseline</div></div>
+    </div>
+  </div>
+</div>
+
+<section id="impact">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Why it matters</p>
+      <div>
+        <h2>Buildings are the largest energy user nobody watches hour by hour.</h2>
+        <p class="lede">Most buildings get a monthly bill, not a benchmark. Without knowing what a building should have used, waste stays invisible and efficiency gains stay unproven. Baseline AI gives every metered building that benchmark, automatically.</p>
+      </div>
+    </div>
+
+    <div class="context">
+      <div>
+        <div class="big">Hidden</div>
+        <p>A monthly bill shows how much a building used, not how much it should have used. Night-time waste and failing equipment disappear into the total.</p>
+      </div>
+      <div>
+        <div class="big">Unproven</div>
+        <p>Efficiency projects promise savings, but few are measured afterwards with a fair, weather-adjusted baseline. Funders cannot tell what worked.</p>
+      </div>
+      <div>
+        <div class="big">Unscaled</div>
+        <p>Engineering energy models need weeks of expert work per building. Cities and national programmes manage thousands of buildings.</p>
+      </div>
+    </div>
+
+    <div class="who">
+      <article>
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M8 10h2M14 10h2"/></svg></div>
+        <div>
+          <p class="role">Building owners and facility teams</p>
+          <h3>Find waste in days, not at the end of the year</h3>
+          <p>Each day, actual use is compared with what the weather and calendar explain. Equipment left running at night, failed HVAC schedules and stuck valves show up as red days on a chart.</p>
+          <p class="proof">Tested by injecting faults into real meters: <b data-stat="det50">74%</b> of +50% fault days and <b data-stat="det">55%</b> of +30% fault days caught, with <b data-stat="fa">3.6%</b> of normal days flagged.</p>
+        </div>
+      </article>
+      <article>
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19h16"/><path d="M6 16l4-5 3 3 5-7"/><path d="M15 7h3v3"/></svg></div>
+        <div>
+          <p class="role">Energy service companies, banks, green funds</p>
+          <h3>Prove savings with a weather-adjusted baseline</h3>
+          <p>After a retrofit, the model predicts what the building would have used without it. The gap is the saving, corrected for weather and calendar, following standard measurement and verification (M&amp;V) practice.</p>
+          <p class="proof">Over three months, a known 15% saving was measured within 10 points in <b data-stat="mvw10">65%</b> of <b data-stat="mvn">591</b> buildings (median error <b data-stat="mv">6.7</b> points). Best suited to retrofits with large savings.</p>
+        </div>
+      </article>
+      <article>
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v4M12 18v4M5 12H2M22 12h-3"/><path d="M13 7l-4 6h4l-2 5"/></svg></div>
+        <div>
+          <p class="role">Utilities and grid operators</p>
+          <h3>Plan tomorrow's demand, building by building</h3>
+          <p>Day-ahead hourly forecasts add up to campus and feeder load. Knowing the peak in advance makes demand response possible: pre-cooling, shifting loads, and freeing room on the grid for solar and wind.</p>
+          <p class="proof"><b data-stat="g14">88%</b> of buildings meet the standard hourly accuracy limits for building energy models (CV-RMSE ≤ 30%, |NMBE| ≤ 10%) with the day-ahead model.</p>
+        </div>
+      </article>
+      <article>
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+        <div>
+          <p class="role">Governments and international agencies</p>
+          <h3>Track efficiency progress across whole building stocks</h3>
+          <p>The same model runs on thousands of buildings from meter and weather data alone. Cities and agencies can benchmark portfolios, target the worst performers and measure policy impact with real data instead of estimates.</p>
+          <p class="proof">One model covers all <b data-stat="buildings">591</b> buildings and 14 building types; no per-building engineering model is needed.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="scale-note">
+      <div>
+        <p class="tag">Engineering simulation</p>
+        <h3>Weeks of expert work per building</h3>
+        <p>Physics-based simulation tools need geometry, materials and HVAC details for each building. Accurate, but too slow and costly for a national building stock.</p>
+      </div>
+      <div class="ours">
+        <p class="tag">Baseline AI</p>
+        <h3>Minutes for a whole portfolio</h3>
+        <p>Learns each building's behaviour from its own meter and local weather. Adding a building adds no engineering cost, so it scales from one campus to a country.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="evidence">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Results</p>
+      <div>
+        <h2>Tested on six months the models never saw.</h2>
+        <p class="lede">All models train on January 2016 to June 2017 and are scored on July to December 2017. Errors are measured per building with the standard energy metrics, then summarized by the median building.</p>
+      </div>
+    </div>
+    <div class="evidence">
+      <div class="panel">
+        <h3>Median error by model (CV-RMSE, lower is better)</h3>
+        <p class="sub">Test period Jul–Dec 2017 · <span data-stat="buildings">591</span> buildings · bars in green are the AI models used by the platform</p>
+        <div class="chart-box"><canvas id="cmp-chart" role="img" aria-label="Median CV-RMSE by model"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Validation of the applications</h3>
+        <p class="sub">Controlled experiments on real test data</p>
+        <div class="checks">
+          <div class="check"><div class="v num" data-stat="g14">88%</div><p><b>Buildings within the standard accuracy limits</b> for hourly building energy models (CV-RMSE ≤ 30%, |NMBE| ≤ 10%) with the day-ahead model.</p></div>
+          <div class="check"><div class="v num" data-stat="det50">74%</div><p><b>Fault days detected.</b> A +50% fault was added for 5 days in <span data-stat="detn">100</span> random buildings; <span data-stat="det">55%</span> of smaller +30% faults are caught. <span data-stat="fa">3.6%</span> of normal days are flagged.</p></div>
+          <div class="check"><div class="v num" data-stat="mvw10">65%</div><p><b>Savings measured within 10 points</b> of a known 15% saving, three months after a simulated retrofit. The baseline model is retrained on all data before the retrofit, as standard M&amp;V practice recommends.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="evidence-2">
+      <div class="panel">
+        <h3>Error across all buildings (day-ahead model)</h3>
+        <p class="sub">Number of buildings by CV-RMSE · dashed line = 30% hourly accuracy limit</p>
+        <div class="chart-box short"><canvas id="hist-chart" role="img" aria-label="Distribution of CV-RMSE across buildings"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Error by building type (day-ahead model)</h3>
+        <p class="sub">Median CV-RMSE per type, most common types first</p>
+        <div class="tbl-wrap"><table id="use-table"><thead><tr><th>Type</th><th class="r">Buildings</th><th class="r">CV-RMSE</th><th class="bar-cell"></th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="method">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Method</p>
+      <div>
+        <h2>From raw meter files to an explainable forecast.</h2>
+        <p class="lede">Six steps, all in open Python code. The pipeline runs end to end with one command on a laptop in about half an hour.</p>
+      </div>
+    </div>
+    <ol class="pipeline">
+      <li><h3>Collect</h3><p>An open dataset of hourly electricity meters from 591 university buildings on four campuses, plus local temperature and humidity.</p><p><code>src/download.py</code></p></li>
+      <li><h3>Clean</h3><p>Remove non-positive readings, frozen meters (identical for 24+ hours) and spikes. Merge each meter with its site's weather.</p><p><code>src/data.py</code></p></li>
+      <li><h3>Engineer features</h3><p>Calendar and holidays, dew point, heating and cooling degree hours, rolling temperature, each building's typical weekly profile and recent level, and past consumption.</p><p><code>src/features.py</code></p></li>
+      <li><h3>Train and compare</h3><p>Two baselines, Ridge regression, Random Forest and gradient-boosted trees (LightGBM), tuned on validation months only.</p><p><code>src/train.py</code></p></li>
+      <li><h3>Explain</h3><p>SHAP values show how temperature, time of day and building history move each prediction, so engineers can check the model's reasoning.</p><p><code>src/explain.py</code></p></li>
+      <li><h3>Act</h3><p>Flag anomalous days, verify savings after retrofits, and publish everything in an interactive dashboard.</p><p><code>src/anomalies.py</code></p></li>
+    </ol>
+
+    <div class="two-models">
+      <div class="model-card">
+        <p class="tag">Model 1 · weather model</p>
+        <h3>How much should this building use?</h3>
+        <p>Knows the building, the weather and the calendar, but not recent meter readings. Its forecast is a fair benchmark of normal behaviour.</p>
+        <ul><li>Detects waste and faults</li><li>Measures retrofit savings (M&amp;V)</li><li>Benchmarks buildings against themselves</li></ul>
+      </div>
+      <div class="model-card">
+        <p class="tag">Model 2 · day-ahead model</p>
+        <h3>How much will this building use tomorrow?</h3>
+        <p>Adds consumption up to the previous day. More accurate, because it tracks each building's latest behaviour.</p>
+        <ul><li>Plans energy purchases and demand</li><li>Anticipates peaks for demand response</li><li>Feeds grid and campus load forecasts</li></ul>
+      </div>
+    </div>
+
+    <div class="rigor">
+      <div><h3>Strict time split</h3><p>Training ends on 30 June 2017. Nothing from the test months is used for training, tuning or features.</p></div>
+      <div><h3>No leakage</h3><p>Building profiles are learned from the training period only. Lag features use data at least 24 hours old.</p></div>
+      <div><h3>Fair examples</h3><p>The platform shows buildings at the 25th, 50th and 75th percentile of error for each type, not the best cases.</p></div>
+      <div><h3>Standard metrics</h3><p>CV-RMSE and NMBE, the reference measures for building energy models, plus RMSLE, MAE and MAPE.</p></div>
+    </div>
+
+    <div class="stack" aria-label="Technology">
+      <span class="chip">Python</span><span class="chip">pandas</span><span class="chip">LightGBM</span><span class="chip">scikit-learn</span><span class="chip">SHAP</span><span class="chip">Streamlit</span><span class="chip">Plotly</span><span class="chip">Parquet</span>
+    </div>
+  </div>
+</section>
+
+<section id="platform">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Platform</p>
+      <div>
+        <h2>Explore the forecasts on real buildings.</h2>
+        <p class="lede">Pick a building and look at what the models predicted for July to December 2017, months they never saw. Everything below runs on the published model outputs.</p>
+      </div>
+    </div>
+
+    <div class="platform">
+      <div class="pf-bar">
+        <div class="field grow">
+          <label for="bsel">Building</label>
+          <select id="bsel" disabled><option>Loading buildings…</option></select>
+        </div>
+        <div class="field">
+          <label>Building error (day-ahead, full test period)</label>
+          <div class="range-row"><span class="pill" id="b-err" style="background: var(--accent-soft); color: var(--accent)">—</span></div>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Platform views">
+        <button class="tab" role="tab" id="tab-forecast" aria-selected="true" aria-controls="view-forecast">Forecast</button>
+        <button class="tab" role="tab" id="tab-anomalies" aria-selected="false" aria-controls="view-anomalies">Anomalies</button>
+        <button class="tab" role="tab" id="tab-savings" aria-selected="false" aria-controls="view-savings">Savings (M&amp;V)</button>
+        <button class="tab" role="tab" id="tab-drivers" aria-selected="false" aria-controls="view-drivers">What drives it</button>
+      </div>
+
+      <div class="pf-body">
+        <div id="view-forecast" role="tabpanel" aria-labelledby="tab-forecast">
+          <div class="pf-controls">
+            <div class="field"><label for="f-start">Start date</label><input type="date" id="f-start" min="2017-07-01" max="2017-12-24" value="2017-10-02"></div>
+            <div class="field"><label>Window</label>
+              <div class="seg" id="f-days"><button type="button" data-days="7" aria-pressed="false">7 days</button><button type="button" data-days="14" aria-pressed="true">14 days</button><button type="button" data-days="30" aria-pressed="false">30 days</button></div>
+            </div>
+            <div class="legend" style="color: var(--muted)">
+              <span><i class="swatch" style="background: var(--ink)"></i>Metered</span>
+              <span><i class="swatch" style="background: var(--accent)"></i>Day-ahead</span>
+              <span><i class="swatch" style="background: var(--weather)"></i>Weather model</span>
+            </div>
+          </div>
+          <div class="pf-chart"><canvas id="f-chart" role="img" aria-label="Hourly metered and forecast electricity use"></canvas></div>
+          <div class="kpis">
+            <div class="kpi"><div class="k">Day-ahead CV-RMSE</div><div class="v num good" id="k-cv-da">—</div></div>
+            <div class="kpi"><div class="k">Weather model CV-RMSE</div><div class="v num" id="k-cv-w">—</div></div>
+            <div class="kpi"><div class="k">Window energy, metered</div><div class="v num" id="k-act">—</div></div>
+            <div class="kpi"><div class="k">Window energy, forecast</div><div class="v num" id="k-fc">—</div></div>
+          </div>
+          <p class="pf-note">CV-RMSE values cover the whole test period for this building. Energy totals cover the selected window.</p>
+        </div>
+
+        <div id="view-anomalies" role="tabpanel" aria-labelledby="tab-anomalies" hidden>
+          <div class="legend" style="color: var(--muted); margin-bottom: 10px">
+            <span><i class="swatch" style="background: var(--weather); height: 10px"></i>Normal day</span>
+            <span><i class="swatch" style="background: var(--signal); height: 10px"></i>Anomalous day</span>
+            <span><i class="swatch" style="background: var(--accent)"></i>Expected use (weather model)</span>
+          </div>
+          <div class="pf-chart"><canvas id="a-chart" role="img" aria-label="Daily electricity use with anomalous days highlighted"></canvas></div>
+          <div class="kpis">
+            <div class="kpi"><div class="k">Anomalous days</div><div class="v num bad" id="k-an-days">—</div></div>
+            <div class="kpi"><div class="k">Events</div><div class="v num" id="k-an-ev">—</div></div>
+            <div class="kpi"><div class="k">Energy above expected</div><div class="v num bad" id="k-an-kwh">—</div></div>
+            <div class="kpi"><div class="k">Share of test days</div><div class="v num" id="k-an-share">—</div></div>
+          </div>
+          <div class="events tbl-wrap"><table><thead><tr><th>Event</th><th class="r">Days</th><th class="r">Above expected</th><th class="r">Extra kWh</th></tr></thead><tbody id="ev-body"></tbody></table></div>
+          <p class="pf-note">Expected use is the weather model, re-calibrated on the building's previous four weeks (ending a week earlier, so a fault cannot hide itself). A day is flagged when use is at least 15% above expectation and an outlier for that building (median + 2.5 robust standard deviations).</p>
+        </div>
+
+        <div id="view-savings" role="tabpanel" aria-labelledby="tab-savings" hidden>
+          <div class="pf-controls">
+            <div class="field"><label for="s-date">Retrofit date</label><input type="date" id="s-date" min="2017-08-01" max="2017-12-01" value="2017-10-01"></div>
+            <div class="field"><label for="s-pct">Saving applied after the retrofit</label><div class="range-row"><input type="range" id="s-pct" min="0" max="40" step="1" value="15"><span class="range-out" id="s-pct-out">15%</span></div></div>
+            <div class="legend" style="color: var(--muted)">
+              <span><i class="swatch" style="background: var(--weather)"></i>Expected without retrofit</span>
+              <span><i class="swatch" style="background: var(--accent)"></i>Metered with retrofit</span>
+            </div>
+          </div>
+          <div class="pf-chart"><canvas id="s-chart" role="img" aria-label="Daily expected and metered use around a simulated retrofit"></canvas></div>
+          <div class="kpis">
+            <div class="kpi"><div class="k">True saving</div><div class="v num" id="k-s-true">—</div></div>
+            <div class="kpi"><div class="k">Measured by the model</div><div class="v num good" id="k-s-est">—</div></div>
+            <div class="kpi"><div class="k">Measurement error</div><div class="v num" id="k-s-err">—</div></div>
+            <div class="kpi"><div class="k">Energy saved</div><div class="v num" id="k-s-kwh">—</div></div>
+          </div>
+          <p class="pf-note">The saving is simulated by reducing the real meter data after the chosen date. This interactive version calibrates the weather model on the 8 weeks before the retrofit with one factor. The validated method in the code goes further and retrains the baseline model on all data up to the retrofit date.</p>
+        </div>
+
+        <div id="view-drivers" role="tabpanel" aria-labelledby="tab-drivers" hidden>
+          <div class="pf-controls">
+            <div class="field"><label>Model</label>
+              <div class="seg" id="d-model"><button type="button" data-model="shap_day_ahead" aria-pressed="true">Day-ahead model</button><button type="button" data-model="shap_weather" aria-pressed="false">Weather model</button></div>
+            </div>
+          </div>
+          <div class="pf-chart"><canvas id="d-chart" role="img" aria-label="Average impact of each feature on the forecast"></canvas></div>
+          <p class="pf-note">Average absolute SHAP value over 20,000 test hours from all buildings, in log-kWh. Longer bars mean the feature moves forecasts more.</p>
+        </div>
+      </div>
+      <div class="status" id="pf-status" hidden></div>
+    </div>
+  </div>
+</section>
+
+<section id="use">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Use it</p>
+      <div>
+        <h2>Run it on your laptop, then on your own buildings.</h2>
+        <p class="lede">Free and open source. You need Python 3.10 or newer and about 4 GB of free memory. No GPU or hardware is required.</p>
+      </div>
+    </div>
+    <div class="use-grid">
+      <ol class="steps">
+        <li><div><h3>Get the code</h3><p>Clone the repository and install the dependencies.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre>git clone https://github.com/ouahab4/baseline-ai
+cd baseline-ai
+pip install -r requirements.txt</pre></div></div></li>
+        <li><div><h3>Run the pipeline</h3><p>Downloads the data, trains the models, explains them and runs the validation tests.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre>./run_all.sh   <span class="c"># about 30 minutes on 4 CPU cores</span></pre></div></div></li>
+        <li><div><h3>Open the dashboard</h3><p>Forecasts, anomalies, SHAP explanations and the savings calculator for every building.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre>streamlit run app/dashboard.py</pre></div></div></li>
+      </ol>
+      <div class="panel">
+        <h3>Bring your own meters</h3>
+        <p class="sub">Export hourly data to one CSV with these columns, then run the importer and the same pipeline.</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Column</th><th>Example</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>timestamp</code></td><td>YYYY-MM-DD 14:00</td><td>Hour start, local time</td></tr>
+            <tr><td><code>building_id</code></td><td>HQ_tower</td><td>Unique meter name</td></tr>
+            <tr><td><code>kwh</code></td><td>182.4</td><td>Electricity in that hour</td></tr>
+            <tr><td><code>temperature</code></td><td>21.5</td><td>Outdoor °C</td></tr>
+            <tr><td><code>humidity</code></td><td>48</td><td>Relative humidity %</td></tr>
+            <tr><td><code>site</code></td><td>Riyadh</td><td>Optional, weather location</td></tr>
+            <tr><td><code>primary_use</code></td><td>office</td><td>Optional, building type</td></tr>
+          </tbody>
+        </table></div>
+        <div class="code"><button class="copy" type="button">Copy</button><pre>python -m src.import_csv my_meters.csv --train-end YYYY-MM-DD
+python -m src.train &amp;&amp; python -m src.explain &amp;&amp; python -m src.anomalies</pre></div>
+        <p class="pf-note">At least 12 months of hourly data per building is recommended, so the model sees every season.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="research">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Research paper</p>
+      <div>
+        <h2>The full method and results, in one paper.</h2>
+        <p class="lede">Data, cleaning rules, features, models, validation protocol, every result table and the limits of the approach. Written so that another team can check and reproduce the work.</p>
+      </div>
+    </div>
+    <div class="paper">
+      <a class="paper-cover" href="paper/Baseline-AI-research-paper.pdf" rel="noopener" aria-label="Open the Baseline AI research paper (PDF)">
+        <img src="paper/cover.jpg" alt="First page of the Baseline AI research paper"  width="900" height="1273">
+      </a>
+      <div class="paper-info">
+        <p class="tag">Research paper · PDF</p>
+        <h3>Baseline AI: Explainable Machine Learning for Hourly Building Energy Forecasting, Waste Detection and Savings Verification</h3>
+        <p class="authors">Abdelouahab KRIM</p>
+        <p class="affil">COMPILIX INNOVATIONS · SPASU BAC Students, Algeria</p>
+        <p class="abstract">We present Baseline AI, an open-source system that predicts the hourly electricity use of buildings from weather, calendar and meter history, and uses those predictions to find energy waste and verify retrofit savings. On 591 real buildings and six unseen months, the day-ahead model reaches a median CV-RMSE of 13.8%, 40% below a seasonal baseline, and 88% of buildings meet standard hourly accuracy limits.</p>
+        <div class="paper-actions">
+          <a class="btn btn-solid" href="paper/Baseline-AI-research-paper.pdf" rel="noopener">Download the paper (PDF)</a>
+          <button class="btn btn-line" type="button" id="cite-btn">Copy citation</button>
+        </div>
+        <pre class="cite" id="cite-text">Krim, A. Baseline AI: Explainable Machine Learning for Hourly Building Energy Forecasting, Waste Detection and Savings Verification. COMPILIX INNOVATIONS, SPASU BAC Students, Algeria.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="about" class="partner">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">About</p>
+      <div>
+        <h2>Built by COMPILIX INNOVATIONS.</h2>
+        <p class="lede">COMPILIX INNOVATIONS is the research lab of SPASU BAC Students, a technology education company based in Algeria. The lab designed, developed and built Baseline AI, from data engineering to the models, the validation studies and this platform.</p>
+      </div>
+    </div>
+    <div class="partner-grid">
+      <div>
+        <p class="tag">Research lab</p>
+        <h3>COMPILIX INNOVATIONS</h3>
+        <p>Applied AI research with open, reproducible code. Baseline AI is the lab's project for energy efficiency in buildings.</p>
+      </div>
+      <div>
+        <p class="tag">Company</p>
+        <h3>SPASU BAC Students</h3>
+        <p>A technology education company based in Algeria, and the home of COMPILIX INNOVATIONS.</p>
+      </div>
+      <div>
+        <p class="tag">Lead researcher</p>
+        <h3>Abdelouahab KRIM</h3>
+        <p>Author of the Baseline AI research paper and lead developer of the system.</p>
+      </div>
+    </div>
+    <div class="partner-grid pilot">
+      <div>
+        <p class="tag">Pilot Baseline AI · what it needs</p>
+        <ul><li>12+ months of hourly or smart-meter data</li><li>Building type for each meter</li><li>Location, for public weather data</li></ul>
+      </div>
+      <div>
+        <p class="tag">What you get</p>
+        <ul><li>Day-ahead forecasts per building</li><li>A ranked list of waste events in kWh</li><li>Weather-adjusted savings for retrofits</li></ul>
+      </div>
+      <div>
+        <p class="tag">Where it helps</p>
+        <ul><li>Public building efficiency programmes</li><li>Performance-based retrofit finance</li><li>Demand flexibility and renewable integration</li></ul>
+      </div>
+    </div>
+    <div class="partner-actions">
+      <a class="btn btn-primary" href="https://github.com/ouahab4/baseline-ai/issues/new" rel="noopener">Start a conversation about a pilot</a>
+      <a class="btn btn-ghost" href="paper/Baseline-AI-research-paper.pdf" rel="noopener">Read the paper</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b style="color: var(--band-ink)">Baseline AI</b> · developed by COMPILIX INNOVATIONS, the research lab of SPASU BAC Students, Algeria. Open-source code on <a href="https://github.com/ouahab4/baseline-ai" rel="noopener">GitHub</a>.</p>
+    <p>Meter data: Building Data Genome 2 open dataset, used under its CC BY 4.0 licence.</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var DATA = null, charts = {}, state = { b: 0, days: 14, start: "2017-10-02", model: "shap_day_ahead", tab: "forecast" };
+  var FEATURE_NAMES = {
+    building_id: "Building identity", site: "Campus", primary_use: "Building type", hour: "Hour of day",
+    dayofweek: "Day of week", month: "Month", dayofyear: "Day of year", hour_of_week: "Hour of week",
+    is_weekend: "Weekend", is_holiday: "Public holiday", temperature: "Outdoor temperature", humidity: "Humidity",
+    dew_point: "Dew point", cooling_degree: "Cooling degree hours", heating_degree: "Heating degree hours",
+    temp_mean_24h: "Temperature, last 24 h", temp_mean_72h: "Temperature, last 72 h", temp_lag_3h: "Temperature 3 h ago",
+    temp_day_max: "Daily max temperature", temp_day_min: "Daily min temperature", bld_mean_log: "Building average level",
+    bld_how_mean_log: "Building weekly profile", bld_month_mean_log: "Building monthly profile",
+    bld_recent_mean_log: "Building recent level", bld_recent_how_log: "Building recent weekly profile",
+    lag_24h: "Use 24 h earlier", lag_48h: "Use 48 h earlier", lag_168h: "Use 1 week earlier", lag_336h: "Use 2 weeks earlier",
+    prev_day_mean: "Previous day average", prev_week_mean: "Previous week average"
+  };
+
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function pct(v, d) { return (v == null || isNaN(v)) ? "—" : v.toFixed(d == null ? 1 : d) + "%"; }
+  function kwh(v) { if (v == null || isNaN(v)) return "—"; var a = Math.abs(v); return (a >= 1e6 ? (v / 1e6).toFixed(2) + " GWh" : a >= 1e4 ? (v / 1e3).toFixed(1) + " MWh" : Math.round(v).toLocaleString("en-US") + " kWh"); }
+  function title(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function hourIndex(dateStr) { return Math.round((Date.parse(dateStr + "T00:00:00Z") - Date.parse(DATA.start.replace(" ", "T") + "Z")) / 36e5); }
+  function hourLabel(i) { var d = new Date(Date.parse(DATA.start.replace(" ", "T") + "Z") + i * 36e5); return d.toISOString().slice(5, 13).replace("T", " ") + "h"; }
+  function niceName(b) { var p = b.id.split("_"); return title(b.use) + " · " + p.slice(2).join(" ") + " (" + b.site + ")"; }
+
+  function cvrmse(a, p) { var s = 0, n = 0, m = 0; for (var i = 0; i < a.length; i++) { if (a[i] == null || p[i] == null) continue; s += (a[i] - p[i]) * (a[i] - p[i]); m += a[i]; n++; } return n ? Math.sqrt(s / n) / (m / n) * 100 : NaN; }
+  function sum(arr, from, to) { var s = 0; for (var i = from; i < to; i++) if (arr[i] != null) s += arr[i]; return s; }
+
+  var MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace", SANS = "'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif";
+  function baseOptions(extra) {
+    var grid = css("--line"), muted = css("--muted");
+    var o = {
+      responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: css("--band"), titleColor: css("--band-ink"), bodyColor: css("--band-ink"), borderColor: css("--band-line"), borderWidth: 1, titleFont: { family: MONO }, bodyFont: { family: SANS } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: window.innerWidth < 640 ? 4 : 8, font: { family: MONO, size: 11 } }, border: { color: grid } },
+        y: { grid: { color: grid }, ticks: { color: muted, font: { family: MONO, size: 11 } }, border: { display: false }, beginAtZero: true }
+      }
+    };
+    return Object.assign(o, extra || {});
+  }
+  function draw(id, config) { if (charts[id]) charts[id].destroy(); var el = document.getElementById(id); if (!el) return; charts[id] = new Chart(el, config); }
+
+  function fillStats() {
+    var cmp = DATA.comparison, v = DATA.validation;
+    var da = cmp.filter(function (r) { return r.model.indexOf("day-ahead model") > -1; })[0];
+    var lw = cmp.filter(function (r) { return r.model.indexOf("same hour last week") > -1; })[0];
+    var vals = {
+      buildings: DATA.portfolio.buildings.toLocaleString("en-US"),
+      readings: (DATA.portfolio.hourly_readings / 1e6).toFixed(1) + "M",
+      dayahead: pct(da.median_cv_rmse_pct),
+      cut: Math.round((1 - da.median_cv_rmse_pct / lw.median_cv_rmse_pct) * 100) + "%",
+      g14: Math.round(da.ashrae_g14_pass_pct) + "%",
+      det: Math.round(v.anomaly_detection.fault_days_detected_pct) + "%",
+      det50: Math.round(v.anomaly_detection_50.fault_days_detected_pct) + "%",
+      detn: v.anomaly_detection.buildings_tested,
+      fa: pct(v.anomaly_detection.normal_days_flagged_pct),
+      mv: v.savings_verification.median_abs_error_pct_points.toFixed(1),
+      mvn: v.savings_verification.buildings_tested,
+      mvw10: Math.round(v.savings_verification.within_10_points_pct) + "%"
+    };
+    document.querySelectorAll("[data-stat]").forEach(function (el) { var k = el.getAttribute("data-stat"); if (vals[k] != null) el.textContent = vals[k]; });
+  }
+
+  function heroChart() {
+    var b = DATA.buildings.filter(function (x) { return x.use === "office"; })[1] || DATA.buildings[0];
+    var s = hourIndex("2017-10-09"), e = s + 14 * 24;
+    document.getElementById("hero-building").textContent = title(b.use) + " building, " + b.site + " campus";
+    var labels = [], act = [], fc = [];
+    for (var i = s; i < e; i++) { labels.push(hourLabel(i)); act.push(b.actual[i]); fc.push(b.day_ahead[i]); }
+    var o = baseOptions();
+    o.scales.x.ticks.color = css("--band-muted"); o.scales.y.ticks.color = css("--band-muted");
+    o.scales.y.grid.color = css("--band-line"); o.scales.x.border.color = css("--band-line");
+    draw("hero-chart", { type: "line", data: { labels: labels, datasets: [
+      { label: "Metered kWh", data: act, borderColor: css("--band-ink"), borderWidth: 1.6, pointRadius: 0, tension: 0.2, spanGaps: true },
+      { label: "Day-ahead forecast kWh", data: fc, borderColor: css("--band-accent"), borderWidth: 1.8, pointRadius: 0, tension: 0.2, spanGaps: true }
+    ] }, options: o });
+  }
+
+  function comparisonChart() {
+    var rows = DATA.comparison.slice().sort(function (a, b) { return a.median_cv_rmse_pct - b.median_cv_rmse_pct; });
+    var accent = css("--accent"), weather = css("--weather");
+    var o = baseOptions({ indexAxis: "y" });
+    o.scales.x.grid = { color: css("--line") }; o.scales.y.grid = { display: false };
+    o.scales.x.title = { display: true, text: "Median CV-RMSE (%)", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.scales.y.ticks.font = { family: SANS, size: 12 }; o.scales.y.ticks.color = css("--ink");
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.parsed.x.toFixed(1) + "% median CV-RMSE"; } };
+    draw("cmp-chart", { type: "bar", data: {
+      labels: rows.map(function (r) { return r.model.replace(" (day-ahead model)", ", day-ahead").replace(" (weather model)", ", weather"); }),
+      datasets: [{ data: rows.map(function (r) { return r.median_cv_rmse_pct; }), backgroundColor: rows.map(function (r) { return r.model.indexOf("LightGBM") === 0 ? accent : weather; }), borderRadius: 3, barPercentage: 0.7 }]
+    }, options: o });
+  }
+
+  function histChart() {
+    var vals = DATA.cv_rmse_day_ahead, edges = [], counts = [];
+    for (var x = 0; x < 60; x += 5) { edges.push(x); counts.push(0); }
+    var over = 0;
+    vals.forEach(function (v) { if (v == null) return; if (v >= 60) { over++; return; } counts[Math.floor(v / 5)]++; });
+    var labels = edges.map(function (e) { return e + "–" + (e + 5); }); labels.push("60+"); counts.push(over);
+    var accent = css("--accent"), weather = css("--weather");
+    var o = baseOptions();
+    o.scales.x.title = { display: true, text: "CV-RMSE (%)", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.scales.x.ticks.maxTicksLimit = 13;
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.parsed.y + " buildings"; } };
+    var limitPlugin = { id: "limit", afterDatasetsDraw: function (ch) { var xs = ch.scales.x, ys = ch.scales.y, cx = ch.ctx; var px = (xs.getPixelForValue(5) + xs.getPixelForValue(6)) / 2; cx.save(); cx.strokeStyle = css("--ink"); cx.setLineDash([4, 4]); cx.beginPath(); cx.moveTo(px, ys.top); cx.lineTo(px, ys.bottom); cx.stroke(); cx.setLineDash([]); cx.fillStyle = css("--muted"); cx.font = "11px " + MONO; cx.fillText("30% limit", px + 6, ys.top + 12); cx.restore(); } };
+    draw("hist-chart", { type: "bar", data: { labels: labels, datasets: [{ data: counts, backgroundColor: edges.concat([60]).map(function (e) { return e < 30 ? accent : weather; }), borderRadius: 2, barPercentage: 0.92, categoryPercentage: 0.95 }] }, options: o, plugins: [limitPlugin] });
+  }
+
+  function useTable() {
+    var rows = DATA.by_use.filter(function (r) { return r.buildings >= 5; });
+    var max = Math.max.apply(null, rows.map(function (r) { return r.median_cv_rmse; }));
+    document.querySelector("#use-table tbody").innerHTML = rows.map(function (r) {
+      return "<tr><td>" + title(r.primary_use) + "</td><td class='r num'>" + r.buildings + "</td><td class='r num'>" + r.median_cv_rmse.toFixed(1) + "%</td><td class='bar-cell'><div class='mini-bar'><i style='width:" + (r.median_cv_rmse / max * 100).toFixed(0) + "%'></i></div></td></tr>";
+    }).join("");
+  }
+
+  /* Platform */
+  function current() { return DATA.buildings[state.b]; }
+  function forecastView() {
+    var b = current(), s = Math.max(0, hourIndex(state.start)), e = Math.min(b.actual.length, s + state.days * 24);
+    var labels = [], act = [], da = [], w = [];
+    for (var i = s; i < e; i++) { labels.push(hourLabel(i)); act.push(b.actual[i]); da.push(b.day_ahead[i]); w.push(b.weather_model[i]); }
+    var o = baseOptions();
+    o.scales.y.title = { display: true, text: "kWh per hour", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.dataset.label + ": " + (c.parsed.y == null ? "—" : c.parsed.y.toFixed(1)) + " kWh"; } };
+    draw("f-chart", { type: "line", data: { labels: labels, datasets: [
+      { label: "Metered", data: act, borderColor: css("--ink"), borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+      { label: "Day-ahead", data: da, borderColor: css("--accent"), borderWidth: 1.6, pointRadius: 0, tension: 0.2 },
+      { label: "Weather model", data: w, borderColor: css("--weather"), borderWidth: 1.2, borderDash: [4, 3], pointRadius: 0, tension: 0.2 }
+    ] }, options: o });
+    document.getElementById("k-cv-da").textContent = pct(cvrmse(b.actual, b.day_ahead));
+    document.getElementById("k-cv-w").textContent = pct(cvrmse(b.actual, b.weather_model));
+    document.getElementById("k-act").textContent = kwh(sum(b.actual, s, e));
+    document.getElementById("k-fc").textContent = kwh(sum(b.day_ahead, s, e));
+  }
+
+  function anomalyView() {
+    var d = current().daily, signal = css("--signal"), weather = css("--weather");
+    var o = baseOptions();
+    o.scales.y.title = { display: true, text: "kWh per day", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.dataset.label + ": " + Math.round(c.parsed.y).toLocaleString("en-US") + " kWh"; } };
+    draw("a-chart", { data: { labels: d.date.map(function (x) { return x.slice(5); }), datasets: [
+      { type: "line", label: "Expected", data: d.expected, borderColor: css("--accent"), borderWidth: 1.8, pointRadius: 0, tension: 0.2, order: 0 },
+      { type: "bar", label: "Metered", data: d.actual, backgroundColor: d.anomaly.map(function (a) { return a ? signal : weather; }), barPercentage: 1, categoryPercentage: 0.9, order: 1 }
+    ] }, options: o });
+    var events = [], cur = null, extra = 0;
+    for (var i = 0; i < d.date.length; i++) {
+      if (d.anomaly[i]) {
+        extra += d.actual[i] - d.expected[i];
+        var prev = i > 0 ? Date.parse(d.date[i - 1]) : null;
+        if (cur && d.anomaly[i - 1] && Date.parse(d.date[i]) - prev === 864e5) { cur.end = d.date[i]; cur.days++; cur.act += d.actual[i]; cur.exp += d.expected[i]; }
+        else { cur = { start: d.date[i], end: d.date[i], days: 1, act: d.actual[i], exp: d.expected[i] }; events.push(cur); }
+      }
+    }
+    var nDays = d.anomaly.reduce(function (a, b) { return a + b; }, 0);
+    document.getElementById("k-an-days").textContent = nDays;
+    document.getElementById("k-an-ev").textContent = events.length;
+    document.getElementById("k-an-kwh").textContent = kwh(extra);
+    document.getElementById("k-an-share").textContent = pct(nDays / d.date.length * 100);
+    events.sort(function (a, b) { return (b.act - b.exp) - (a.act - a.exp); });
+    document.getElementById("ev-body").innerHTML = events.length ? events.slice(0, 8).map(function (ev) {
+      return "<tr><td class='num'>" + ev.start + (ev.end !== ev.start ? " → " + ev.end.slice(5) : "") + "</td><td class='r num'>" + ev.days + "</td><td class='r'><span class='pill'>+" + ((ev.act / ev.exp - 1) * 100).toFixed(0) + "%</span></td><td class='r num'>" + Math.round(ev.act - ev.exp).toLocaleString("en-US") + "</td></tr>";
+    }).join("") : "<tr><td colspan='4' style='color: var(--muted)'>No anomalous days for this building in the test period.</td></tr>";
+  }
+
+  function savingsView() {
+    var b = current(), date = document.getElementById("s-date").value || "2017-10-01", save = +document.getElementById("s-pct").value / 100;
+    var cut = hourIndex(date), n = b.actual.length;
+    var preA = 0, preP = 0;  // calibrate on the 8 weeks before the retrofit
+    for (var i = Math.max(0, cut - 56 * 24); i < cut; i++) if (b.actual[i] != null && b.weather_model[i] != null) { preA += b.actual[i]; preP += b.weather_model[i]; }
+    var cal = preA / preP, postA = 0, postB = 0, dayA = {}, dayB = {}, order = [];
+    for (i = 0; i < n; i++) {
+      if (b.actual[i] == null || b.weather_model[i] == null) continue;
+      var a = b.actual[i] * (i >= cut ? 1 - save : 1), base = b.weather_model[i] * cal, key = hourLabel(i).slice(0, 5);
+      if (!(key in dayA)) { dayA[key] = 0; dayB[key] = 0; order.push(key); }
+      dayA[key] += a; dayB[key] += base;
+      if (i >= cut) { postA += a; postB += base; }
+    }
+    var est = 1 - postA / postB;
+    var o = baseOptions();
+    o.scales.y.title = { display: true, text: "kWh per day", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.dataset.label + ": " + Math.round(c.parsed.y).toLocaleString("en-US") + " kWh"; } };
+    var cutLabel = date.slice(5);
+    var linePlugin = { id: "retrofit", afterDatasetsDraw: function (ch) { var xs = ch.scales.x, ys = ch.scales.y, idx = order.indexOf(cutLabel); if (idx < 0) return; var px = xs.getPixelForValue(idx), cx = ch.ctx; cx.save(); cx.strokeStyle = css("--ink"); cx.setLineDash([4, 4]); cx.beginPath(); cx.moveTo(px, ys.top); cx.lineTo(px, ys.bottom); cx.stroke(); cx.setLineDash([]); cx.fillStyle = css("--muted"); cx.font = "11px " + MONO; cx.fillText("retrofit", px + 6, ys.top + 12); cx.restore(); } };
+    draw("s-chart", { type: "line", data: { labels: order, datasets: [
+      { label: "Expected without retrofit", data: order.map(function (k) { return dayB[k]; }), borderColor: css("--weather"), borderWidth: 1.8, pointRadius: 0, tension: 0.2 },
+      { label: "Metered with retrofit", data: order.map(function (k) { return dayA[k]; }), borderColor: css("--accent"), borderWidth: 1.8, pointRadius: 0, tension: 0.2 }
+    ] }, options: o, plugins: [linePlugin] });
+    document.getElementById("s-pct-out").textContent = Math.round(save * 100) + "%";
+    document.getElementById("k-s-true").textContent = pct(save * 100);
+    document.getElementById("k-s-est").textContent = pct(est * 100);
+    document.getElementById("k-s-err").textContent = (est * 100 - save * 100 >= 0 ? "+" : "") + (est * 100 - save * 100).toFixed(1) + " pts";
+    document.getElementById("k-s-kwh").textContent = kwh(postB - postA);
+  }
+
+  function driversView() {
+    var rows = DATA[state.model].slice().reverse();
+    var o = baseOptions({ indexAxis: "y" });
+    o.scales.x.grid = { color: css("--line") }; o.scales.y.grid = { display: false };
+    o.scales.y.ticks.font = { family: SANS, size: 12 }; o.scales.y.ticks.color = css("--ink");
+    o.scales.x.title = { display: true, text: "Mean |SHAP| (log-kWh)", color: css("--muted"), font: { family: MONO, size: 11 } };
+    o.plugins.tooltip.callbacks = { label: function (c) { return " " + c.parsed.x.toFixed(3); } };
+    rows = rows.reverse();
+    draw("d-chart", { type: "bar", data: { labels: rows.map(function (r) { return FEATURE_NAMES[r.feature] || r.feature; }), datasets: [{ data: rows.map(function (r) { return r.mean_abs_shap; }), backgroundColor: rows.map(function (r, i) { return i === 0 ? css("--accent") : css("--weather"); }), borderRadius: 3, barPercentage: 0.7 }] }, options: o });
+  }
+
+  function render() {
+    var b = current();
+    document.getElementById("b-err").textContent = pct(cvrmse(b.actual, b.day_ahead)) + " CV-RMSE";
+    if (state.tab === "forecast") forecastView();
+    if (state.tab === "anomalies") anomalyView();
+    if (state.tab === "savings") savingsView();
+    if (state.tab === "drivers") driversView();
+  }
+  function renderAll() { if (!DATA || typeof Chart === "undefined") return; heroChart(); comparisonChart(); histChart(); render(); }
+
+  function setupPlatform() {
+    var sel = document.getElementById("bsel"), groups = {};
+    DATA.buildings.forEach(function (b, i) { (groups[b.use] = groups[b.use] || []).push(i); });
+    sel.innerHTML = Object.keys(groups).map(function (u) {
+      return "<optgroup label='" + title(u) + "'>" + groups[u].map(function (i) { return "<option value='" + i + "'>" + niceName(DATA.buildings[i]) + "</option>"; }).join("") + "</optgroup>";
+    }).join("");
+    var office = DATA.buildings.findIndex(function (b) { return b.use === "office"; });
+    state.b = office >= 0 ? office + 1 < DATA.buildings.length && DATA.buildings[office + 1].use === "office" ? office + 1 : office : 0;
+    sel.value = state.b; sel.disabled = false;
+    sel.addEventListener("change", function () { state.b = +sel.value; render(); });
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.addEventListener("click", function () {
+        state.tab = t.id.replace("tab-", "");
+        document.querySelectorAll(".tab").forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); document.getElementById(x.getAttribute("aria-controls")).hidden = x !== t; });
+        render();
+      });
+    });
+    document.getElementById("f-start").addEventListener("change", function (e) { if (e.target.value) { state.start = e.target.value; render(); } });
+    document.querySelectorAll("#f-days button").forEach(function (btn) { btn.addEventListener("click", function () { state.days = +btn.dataset.days; document.querySelectorAll("#f-days button").forEach(function (x) { x.setAttribute("aria-pressed", x === btn ? "true" : "false"); }); render(); }); });
+    document.querySelectorAll("#d-model button").forEach(function (btn) { btn.addEventListener("click", function () { state.model = btn.dataset.model; document.querySelectorAll("#d-model button").forEach(function (x) { x.setAttribute("aria-pressed", x === btn ? "true" : "false"); }); render(); }); });
+    document.getElementById("s-date").addEventListener("change", render);
+    document.getElementById("s-pct").addEventListener("input", render);
+  }
+
+  document.querySelectorAll(".code .copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = btn.nextElementSibling.innerText;
+      var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1500); };
+      try { navigator.clipboard.writeText(text).then(done, function () { selectText(btn.nextElementSibling); }); } catch (e) { selectText(btn.nextElementSibling); }
+    });
+  });
+  function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  var citeBtn = document.getElementById("cite-btn");
+  if (citeBtn) citeBtn.addEventListener("click", function () {
+    var el = document.getElementById("cite-text"), text = el.innerText;
+    try { navigator.clipboard.writeText(text).then(function () { citeBtn.textContent = "Citation copied"; setTimeout(function () { citeBtn.textContent = "Copy citation"; }, 1600); }, function () { selectText(el); }); } catch (e) { selectText(el); }
+  });
+
+  var themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  if (themeQuery.addEventListener) themeQuery.addEventListener("change", renderAll);
+  new MutationObserver(renderAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  if (typeof Chart !== "undefined") { Chart.defaults.font.family = SANS; Chart.defaults.color = css("--muted"); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll);
+
+  fetch("data/results.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+    DATA = d; fillStats(); useTable(); setupPlatform(); renderAll();
+  }).catch(function () {
+    var s = document.getElementById("pf-status"); s.hidden = false;
+    s.textContent = "The example data could not be loaded. Run python -m src.export_site, then reload this page.";
+  });
+})();
+</script>
+</body>
+</html>

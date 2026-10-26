@@ -1,0 +1,8 @@
+variant,best_iteration,median_cv_rmse_pct,median_abs_nmbe_pct,median_mape_pct,rmsle,mae_kwh,ashrae_g14_pass_pct,n_buildings
+weather: original features,45,22.12,8.8,18.18,0.4309,21.46,49.2,591
+weather: + recent level,49,21.84,8.47,17.88,0.4308,20.91,50.3,591
+weather: + recent level - dayofyear,40,22.54,9.29,18.43,0.4316,22.31,47.2,591
+"weather: + recent - dayofyear, smaller trees",175,21.49,7.95,17.68,0.429,20.79,51.3,591
+day-ahead: original features,46,15.46,3.12,11.46,0.2411,12.43,84.4,591
+day-ahead: + recent - dayofyear,45,15.65,3.39,11.53,0.2441,12.75,83.8,591
+"day-ahead: + recent - dayofyear, smaller trees",214,14.95,2.18,10.87,0.2337,11.19,86.3,591

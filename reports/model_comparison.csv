@@ -1,0 +1,8 @@
+model,column,task,median_cv_rmse_pct,median_abs_nmbe_pct,median_mape_pct,rmsle,mae_kwh,ashrae_g14_pass_pct,n_buildings
+Baseline: weekly profile,baseline_profile,weather,28.38,8.63,23.12,0.4208,24.45,44.3,591
+Ridge regression,ridge,weather,24.87,7.63,20.47,0.4473,25.66,51.6,591
+Random Forest,random_forest,weather,21.77,6.67,17.83,0.4317,23.34,57.9,591
+LightGBM (weather model),lgbm_weather,weather,21.49,6.43,17.79,0.4254,22.86,58.9,591
+Ensemble LightGBM + RF,ensemble_weather,weather,21.3,6.51,17.45,0.4257,22.79,58.5,591
+Baseline: same hour last week,baseline_last_week,day-ahead,22.95,1.19,17.03,0.3236,15.22,72.8,591
+LightGBM (day-ahead model),lgbm_day_ahead,day-ahead,13.76,1.29,10.15,0.2055,10.6,88.2,591

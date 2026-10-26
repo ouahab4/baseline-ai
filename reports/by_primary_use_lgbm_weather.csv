@@ -1,0 +1,15 @@
+primary_use,buildings,median_cv_rmse,median_abs_nmbe
+education,243,20.13,6.06
+public,94,19.38,6.76
+assembly,78,33.15,10.66
+office,70,21.53,6.1
+lodging,52,19.54,6.46
+parking,15,14.38,4.06
+other,9,19.65,7.57
+retail,8,29.86,4.5
+warehouse,7,57.68,22.65
+health,7,21.44,6.1
+food,2,24.48,8.0
+religion,2,44.16,18.1
+science,2,22.47,16.11
+utility,2,24.74,9.02

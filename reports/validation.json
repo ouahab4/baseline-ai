@@ -1,0 +1,26 @@
+{
+  "anomaly_detection": {
+    "buildings_tested": 100,
+    "fault_size": "+30% for 5 days",
+    "fault_days_detected_pct": 54.6,
+    "normal_days_flagged_pct": 3.56
+  },
+  "anomaly_detection_50": {
+    "buildings_tested": 100,
+    "fault_size": "+50% for 5 days",
+    "fault_days_detected_pct": 74.2,
+    "normal_days_flagged_pct": 3.36
+  },
+  "savings_verification": {
+    "buildings_tested": 591,
+    "true_saving_pct": 15.0,
+    "retrofit_date": "2017-10-01",
+    "measurement_months": 3,
+    "median_abs_error_pct_points": 6.67,
+    "within_5_points_pct": 42.5,
+    "within_10_points_pct": 64.8,
+    "placebo_median_estimate_pct": -1.63
+  },
+  "anomalous_day_share_pct": 3.72,
+  "anomaly_events": 1600
+}
